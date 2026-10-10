@@ -18,7 +18,7 @@ planning history becomes material for the final report.
 - **Zod** — every server action re-validates its input
 - **Vitest** + **ESLint** + a **GitHub Actions** CI workflow
 - **docker compose** for local PostgreSQL
-- dnd-kit planned for the kanban drag and drop (Phase 1)
+- **dnd-kit** for the kanban drag and drop
 
 ## Prerequisites
 
@@ -65,7 +65,7 @@ and three open questions (open, parked, and dropped).
 | `npm run dev`      | Start the dev server                          |
 | `npm run typecheck`| `tsc --noEmit`                                |
 | `npm run lint`     | ESLint flat config                            |
-| `npm test`         | Vitest (unit tests, no DB needed)             |
+| `npm test`         | Vitest. Pure unit tests always run; the DB-backed authorization tests run when `DATABASE_URL` is set (local docker compose or CI) |
 | `npm run build`    | Production build                              |
 | `npm run db:up` / `db:down` | Start / stop the Postgres container   |
 | `npm run db:migrate` | Create and apply a migration (`prisma migrate dev`) |
@@ -78,23 +78,38 @@ and three open questions (open, parked, and dropped).
 ```
 src/
   app/                  # App Router pages
+    (app)/              # protected pages (auth guard + header live here)
+      projects/         # project list + create form
+      projects/[projectId]/            # milestone timeline
+      projects/[projectId]/milestones/[milestoneId]  # kanban board
     (auth)/login        # sign-in page
     (auth)/signup       # create-account page
-    dashboard/          # protected placeholder home (Phases 3+)
     api/auth/[...nextauth]  # Auth.js route handler
-  actions/auth.ts       # server action: sign-up (the only mutation entry point)
-  components/auth/      # client-side forms
+  actions/
+    auth.ts             # server action: sign-up
+    projects.ts         # createProject, createMilestone, updateMilestoneStatus
+    tasks.ts            # saveTask, deleteTask, moveTasks
+  components/
+    auth/               # client-side sign-in/sign-up forms
+    projects/           # create-project form
+    timeline/           # add-milestone form, milestone status control
+    kanban/             # KanbanBoard (dnd-kit), TaskDialog
+    ProgressBar.tsx     # shared progress bar
+    StatusBadge.tsx     # shared status badge
   lib/
     auth.ts             # NextAuth config (Credentials + JWT)
     prisma.ts           # Prisma client singleton
     validation.ts       # Zod schemas
     password.ts         # scrypt hashing (node:crypto, no native deps)
+    data.ts             # owner-scoped read queries
+    milestone-metrics.ts# pure progress / overdue / days-left helpers
+    status.ts           # shared status labels and colours
   types/next-auth.d.ts  # session user.id typing
 prisma/
   schema.prisma         # full data model
   seed.ts               # demo data
   migrations/           # versioned SQL migrations
-tests/                  # Vitest unit tests
+tests/                  # Vitest unit tests + DB-backed authorization tests
 .github/workflows/ci.yml
 ```
 
@@ -103,17 +118,22 @@ tests/                  # Vitest unit tests
 - **All mutations are server actions.** One pattern, used everywhere.
   NextAuth's route handler is the only exception (it must be a route).
 - **Every server action re-validates with Zod.**
-- **Every query is scoped to the owner** (`session.user.id`). The read-only
-  supervisor share link (Phase 4) is the only account-less access and is
-  limited to one project.
+- **Every query is scoped to the owner** (`session.user.id`); read helpers
+  return `null` for foreign ids, pages render 404. The read-only supervisor
+  share link (Phase 4) is the only account-less access and is limited to one
+  project.
 - Business logic lives in plain functions under `src/lib` so it is testable
   without the database.
+- Dates are date-only values stored as local midnight; progress, overdue, and
+  days-left are computed by one shared utility with edge-case tests.
 
 ## Status
 
 - **Phase 0 (done):** scaffold, Docker Compose Postgres, Prisma schema with
   first migration, Auth.js sign-up/login, protected dashboard placeholder,
   seed script, Vitest, ESLint, CI workflow, README.
-- **Phase 1 (next):** project creation, milestone timeline, kanban board with
-  dnd-kit (drag between To do / In progress / Blocked / Done), overdue flags.
+- **Phase 1 (done):** project creation, milestone timeline with progress and
+  one-click status changes, dnd-kit kanban (drag between To do / In progress /
+  Blocked / Done + reorder), task add/edit/delete, overdue flags, owner-scoped
+  DB tests, CI runs migrations before tests.
 - **Phases 2–4:** meetings, questions, reviews + dashboard, sharing and export.
