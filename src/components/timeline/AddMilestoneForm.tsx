@@ -22,11 +22,12 @@ export function AddMilestoneForm({ projectId }: { projectId: string }) {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     startTransition(async () => {
       const result = await createMilestoneAction({ success: false }, formData);
       if (result?.success) {
-        event.currentTarget.reset();
+        form.reset();
         setError(null);
         setOpen(false);
       } else {
