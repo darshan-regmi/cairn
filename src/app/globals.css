@@ -8,9 +8,24 @@
   --color-edge: var(--app-edge);
   --color-accent: var(--app-accent);
   --color-accent-ink: var(--app-accent-ink);
+
+  /*
+   * Type: a system "editorial" pairing. A clean geometric sans carries the
+   * UI, a serif display face gives page titles and the wordmark their
+   * editorial contrast, and a mono face sets hashes and code apart.
+   */
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Helvetica Neue",
+    sans-serif;
+  --font-display:
+    ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    Cambria, "Times New Roman", serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo,
+    monospace;
+
+  /* One deliberately soft elevation, for overlays only. */
+  --shadow-lift: 0 20px 50px -24px rgb(1 7 54 / 0.35);
 }
 
 /*
@@ -58,4 +73,21 @@ html {
 body {
   background-color: var(--app-bg);
   color: var(--app-fg);
+}
+
+@layer base {
+  /* Page titles and the wordmark read as editorial serif; everything else
+     stays in the UI sans. */
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+  }
 }

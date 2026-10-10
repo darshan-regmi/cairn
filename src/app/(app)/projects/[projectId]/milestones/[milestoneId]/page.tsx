@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { findMilestoneForUser } from "@/lib/data";
 import {
@@ -64,16 +65,16 @@ export default async function MilestoneKanbanPage({
   );
 
   return (
-    <main id="main-content" className="mx-auto w-full max-w-7xl px-4 py-10">
-      <a
+    <main id="main-content" className="mx-auto w-full max-w-7xl px-4 py-12">
+      <Link
         href={`/projects/${milestone.projectId}`}
-        className="text-sm text-muted transition-colors hover:text-fg"
+        className="text-sm text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         ← {milestone.project.title}
-      </a>
+      </Link>
 
       <header className="mt-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl tracking-tight">
           {milestone.name}
         </h1>
         <div className="mt-1 flex flex-wrap items-center gap-2">

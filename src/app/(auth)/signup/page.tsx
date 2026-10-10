@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 
@@ -9,7 +10,7 @@ export default async function SignUpPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
+        <h1 className="text-2xl tracking-tight">Create account</h1>
         <p className="text-sm text-muted">
           Your final year project, organised in one place.
         </p>
@@ -19,9 +20,12 @@ export default async function SignUpPage() {
 
       <p className="text-center text-sm text-muted">
         Already have an account?{" "}
-        <a href="/login" className="text-accent underline underline-offset-4">
+        <Link
+          href="/login"
+          className="rounded text-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
           Log in
-        </a>
+        </Link>
       </p>
     </div>
   );

@@ -23,7 +23,7 @@ export default async function AppLayout({
           <div className="flex items-center gap-6">
             <Link
               href="/projects"
-              className="text-sm font-semibold tracking-tight text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="font-display text-base tracking-tight text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               FYP Planner
             </Link>

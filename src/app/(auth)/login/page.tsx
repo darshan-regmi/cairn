@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { LoginForm } from "@/components/auth/LoginForm";
 
@@ -15,7 +16,7 @@ export default async function LoginPage({
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Log in</h1>
+        <h1 className="text-2xl tracking-tight">Log in</h1>
         <p className="text-sm text-muted">
           Continue planning your final year project.
         </p>
@@ -31,9 +32,12 @@ export default async function LoginPage({
 
       <p className="text-center text-sm text-muted">
         No account yet?{" "}
-        <a href="/signup" className="text-accent underline underline-offset-4">
+        <Link
+          href="/signup"
+          className="rounded text-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
           Create one
-        </a>
+        </Link>
       </p>
     </div>
   );

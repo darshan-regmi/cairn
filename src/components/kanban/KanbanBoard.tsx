@@ -277,7 +277,7 @@ function KanbanColumn({
           type="button"
           onClick={onAdd}
           aria-label={`Add task to ${taskStatusLabel[column.status]}`}
-          className="rounded-md px-2 py-0.5 text-sm text-muted transition-colors hover:bg-accent/10 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="inline-flex items-center justify-center rounded-md px-2 py-0.5 text-sm text-muted transition-colors hover:bg-accent/10 hover:text-fg pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           +
         </button>
@@ -382,7 +382,7 @@ function SortableCard({
             event.stopPropagation();
             onEdit(card);
           }}
-          className="rounded text-xs text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="inline-flex items-center rounded text-xs text-muted transition-colors hover:text-fg pointer-coarse:min-h-11 pointer-coarse:px-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Edit
         </button>
@@ -394,7 +394,7 @@ function SortableCard({
 function OverlayCard({ card }: { card: KanbanCard }) {
   return (
     <div
-      className={`w-72 rotate-2 rounded-md border bg-surface p-3 shadow-xl ${
+      className={`w-72 rotate-2 rounded-md border bg-surface p-3 shadow-lift ${
         card.isOverdue ? "border-red-300 dark:border-red-900" : "border-edge"
       }`}
     >

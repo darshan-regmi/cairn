@@ -51,7 +51,7 @@ export default async function ProjectTimelinePage({
   });
 
   return (
-    <main id="main-content" className="mx-auto w-full max-w-4xl px-4 py-10">
+    <main id="main-content" className="mx-auto w-full max-w-4xl px-4 py-12">
       <Link
         href="/projects"
         className="text-sm text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -61,7 +61,7 @@ export default async function ProjectTimelinePage({
 
       <header className="mt-2 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-2xl tracking-tight">
             {project.title}
           </h1>
           {project.goal && (
@@ -85,7 +85,7 @@ export default async function ProjectTimelinePage({
           </p>
         </section>
       ) : (
-        <ol className="mt-10 space-y-4">
+        <ol className="mt-10 space-y-5">
           {milestones.map((milestone) => (
             <li
               key={milestone.id}
