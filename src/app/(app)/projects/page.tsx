@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { listProjectsForUser } from "@/lib/data";
 import { toDateInput } from "@/lib/milestone-metrics";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
+import { ImportCsvForm } from "@/components/projects/ImportCsvForm";
 
 export default async function ProjectsPage() {
   const session = await auth();
@@ -20,6 +21,7 @@ export default async function ProjectsPage() {
       </header>
 
       <CreateProjectForm />
+      <ImportCsvForm />
 
       {projects.length === 0 ? (
         <section className="mt-16 rounded-lg border border-dashed border-edge p-10 text-center">
