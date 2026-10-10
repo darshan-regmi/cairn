@@ -277,7 +277,7 @@ function KanbanColumn({
           type="button"
           onClick={onAdd}
           aria-label={`Add task to ${taskStatusLabel[column.status]}`}
-          className="rounded-md px-2 py-0.5 text-sm text-muted transition-colors hover:bg-accent/10 hover:text-fg"
+          className="rounded-md px-2 py-0.5 text-sm text-muted transition-colors hover:bg-accent/10 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           +
         </button>
@@ -370,14 +370,14 @@ function SortableCard({
       {card.notes && (
         <p className="mt-2 line-clamp-2 text-xs text-muted">{card.notes}</p>
       )}
-      <div className="mt-2 flex gap-3 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+      <div className="mt-2 flex gap-3 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">
         <button
           type="button"
           onClick={(event) => {
             event.stopPropagation();
             onEdit(card);
           }}
-          className="text-xs text-muted transition-colors hover:text-fg"
+          className="rounded text-xs text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Edit
         </button>

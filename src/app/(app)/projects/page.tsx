@@ -37,7 +37,7 @@ export default async function ProjectsPage() {
             <li key={project.id}>
               <a
                 href={`/projects/${project.id}`}
-                className="group block rounded-lg border border-edge p-5 transition-colors hover:border-accent/50 hover:bg-accent/5"
+                className="group block rounded-lg border border-edge p-5 transition-colors hover:border-accent/50 hover:bg-accent/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 <h2 className="font-medium transition-colors group-hover:text-accent">
                   {project.title}

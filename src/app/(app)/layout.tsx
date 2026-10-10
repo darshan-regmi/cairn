@@ -17,14 +17,14 @@ export default async function AppLayout({
           <div className="flex items-center gap-6">
             <Link
               href="/projects"
-              className="text-sm font-semibold tracking-tight text-fg"
+              className="text-sm font-semibold tracking-tight text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               FYP Planner
             </Link>
             <nav aria-label="Primary">
               <Link
                 href="/projects"
-                className="rounded-md px-2 py-1 text-sm text-muted transition-colors hover:bg-accent/10 hover:text-fg"
+                className="rounded-md px-2 py-1 text-sm text-muted transition-colors hover:bg-accent/10 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Projects
               </Link>
@@ -42,7 +42,7 @@ export default async function AppLayout({
             </span>
             <button
               type="submit"
-              className="rounded-md border border-edge px-3 py-1.5 text-sm text-fg transition-colors hover:bg-accent/10"
+              className="rounded-md border border-edge px-3 py-1.5 text-sm text-fg transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               Sign out
             </button>

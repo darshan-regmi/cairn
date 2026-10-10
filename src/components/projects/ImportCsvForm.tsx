@@ -26,7 +26,7 @@ export function ImportCsvForm() {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-controls="import-csv-panel"
-        className="rounded-full border border-edge px-3.5 py-1.5 text-sm text-muted transition-[border-color,color,transform] duration-150 hover:border-accent/40 hover:text-fg motion-safe:active:scale-[0.97]"
+        className="rounded-full border border-edge px-3.5 py-1.5 text-sm text-muted transition-[border-color,color,transform] duration-150 hover:border-accent/40 hover:text-fg motion-safe:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         …or import a plan from a GanttProject CSV
       </button>
@@ -60,7 +60,7 @@ export function ImportCsvForm() {
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition-[transform,opacity] duration-150 hover:opacity-90 disabled:opacity-50 motion-safe:active:scale-[0.97]"
+                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition-[transform,opacity] duration-150 hover:opacity-90 disabled:opacity-50 motion-safe:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
               >
                 {pending ? "Importing…" : "Import file"}
               </button>

@@ -41,7 +41,7 @@ export function AddMilestoneForm({ projectId }: { projectId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="shrink-0 rounded-md border border-edge px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/10"
+        className="shrink-0 rounded-md border border-edge px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         + Add milestone
       </button>
@@ -118,7 +118,7 @@ export function AddMilestoneForm({ projectId }: { projectId: string }) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink disabled:opacity-50"
+            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
           >
             {pending ? "Adding…" : "Add milestone"}
           </button>

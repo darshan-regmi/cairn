@@ -210,7 +210,7 @@ export function TaskDialog({
                   type="button"
                   onClick={handleDelete}
                   disabled={pending}
-                  className="text-sm text-muted transition-colors hover:text-red-600"
+                  className="text-sm text-muted transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   Delete task
                 </button>
@@ -230,14 +230,14 @@ export function TaskDialog({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md border border-edge px-3 py-1.5 text-sm transition-colors hover:bg-accent/10"
+                className="rounded-md border border-edge px-3 py-1.5 text-sm transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition-opacity disabled:opacity-50"
+                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition-opacity disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
               >
                 {pending ? "Saving…" : editing ? "Save changes" : "Add task"}
               </button>

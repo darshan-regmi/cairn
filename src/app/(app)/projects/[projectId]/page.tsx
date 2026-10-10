@@ -54,7 +54,7 @@ export default async function ProjectTimelinePage({
     <main className="mx-auto w-full max-w-4xl px-4 py-10">
       <Link
         href="/projects"
-        className="text-sm text-muted transition-colors hover:text-fg"
+        className="text-sm text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         ← All projects
       </Link>
@@ -107,7 +107,7 @@ export default async function ProjectTimelinePage({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <a
                       href={`/projects/${project.id}/milestones/${milestone.id}`}
-                      className="font-medium text-fg transition-colors hover:text-accent"
+                      className="font-medium text-fg transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                       {milestone.name}
                     </a>
