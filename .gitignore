@@ -45,8 +45,4 @@ yarn-error.log*
 next-env.d.ts
 
 # Agent skill bundles (harness artifacts, not app assets)
-brand-system.zip
-frontend-design.zip
-responsive-design.zip
-ui-design-systems.zip
-ux-research.zip
+/*.zip
