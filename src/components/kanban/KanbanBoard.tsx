@@ -7,9 +7,13 @@ import {
   KeyboardSensor,
   PointerSensor,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
   useDroppable,
   useSensor,
   useSensors,
+  type Collision,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
@@ -55,6 +59,44 @@ const cardId = (id: string) => `card-${id}`;
 const columnId = (status: string) => `column-${status}`;
 const isColumnId = (id: string) => id.startsWith("column-");
 const stripColumn = (id: string) => id.slice("column-".length);
+
+type Rect = { top: number; left: number; right: number; bottom: number };
+
+const EMPTY_RECT: Rect = { top: 0, left: 0, right: 0, bottom: 0 };
+
+const rectArea = (rect: Rect) =>
+  Math.max(0, rect.right - rect.left) * Math.max(0, rect.bottom - rect.top);
+
+/**
+ * Board-wide collision strategy for four side-by-side columns.
+ *
+ * closestCorners alone is unreliable here: it measures corner distances, so
+ * a card in an *adjacent* column can be "closer" to the pointer than the
+ * hovered column's own corners.
+ *
+ * Instead: prefer droppables the dragged card actually overlaps, breaking
+ * ties in favour of the smallest target so a card beats its containing
+ * column. When nothing overlaps (the card is floating over empty airspace),
+ * fall back to the container that contains the pointer, then to
+ * closestCorners as a last resort (e.g. when dropping in a column gap).
+ */
+function boardCollision(args: Parameters<CollisionDetection>[0]): Collision[] {
+  const overlaps = rectIntersection(args);
+  if (overlaps.length > 0) {
+    return overlaps
+      .map((collision) => ({
+        collision,
+        area: rectArea(args.droppableRects.get(collision.id) ?? EMPTY_RECT),
+      }))
+      .sort((a, b) => a.area - b.area)
+      .map(({ collision }) => collision);
+  }
+
+  const within = pointerWithin(args);
+  if (within.length > 0) return within;
+
+  return closestCorners(args);
+}
 
 export function KanbanBoard({
   milestoneId,
@@ -158,9 +200,14 @@ export function KanbanBoard({
 
   return (
     <div className="mt-8">
+      {/* A stable id is required: dnd-kit derives the sortable cards'
+          aria-describedby from it; without one it falls back to a module-level
+          counter that differs between the SSR render and the client, causing
+          a React hydration mismatch. */}
       <DndContext
+        id="kanban-board"
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={boardCollision}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={() => setActiveCard(null)}
