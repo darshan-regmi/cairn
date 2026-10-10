@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum MilestoneStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  SLIPPED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TaskSource {
+  PLANNED
+  MEETING
+  QUESTION
+  REVIEW
+}
+
+enum QuestionStatus {
+  OPEN
+  ADOPTED
+  PARKED
+  DROPPED
+}
+
+enum ReviewVerdict {
+  ON_TRACK
+  PARTLY_MET
+  OFF_TRACK
+}
+
+enum EvidenceType {
+  DEMO
+  SCREENSHOT
+  TEST_RESULT
+  BENCHMARK
+  COMMIT_OR_PR
+  SUPERVISOR_FEEDBACK
+}
+
+// ---------- Models ----------
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  projects     Project[]
+}
+
+model Project {
+  id         String      @id @default(cuid())
+  title      String
+  ownerId    String
+  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  startDate  DateTime
+  endDate    DateTime
+  shareToken String?     @unique
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  milestones Milestone[]
+  meetings   Meeting[]
+  questions  Question[]
+
+  @@index([ownerId])
+}
+
+model Milestone {
+  id           String           @id @default(cuid())
+  projectId    String
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String
+  status       MilestoneStatus  @default(PLANNED)
+  plannedStart DateTime
+  plannedEnd   DateTime
+  actualStart  DateTime?
+  actualEnd    DateTime?
+  commitRange  String?
+  goal         String?
+  order        Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  tasks        Task[]
+  meetings     Meeting[]
+  questions    Question[]
+  review       Review?
+  evidence     Evidence[]
+
+  @@unique([projectId, order])
+  @@index([projectId, status])
+}
+
+model Task {
+  id               String       @id @default(cuid())
+  milestoneId      String
+  milestone        Milestone    @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  title            String
+  status           TaskStatus   @default(TODO)
+  due              DateTime?
+  priority         Priority     @default(MEDIUM)
+  source           TaskSource   @default(PLANNED)
+  commit           String?
+  notes            String?
+  order            Int          @default(0)
+  sourceMeetingId  String?
+  sourceMeeting    Meeting?     @relation(fields: [sourceMeetingId], references: [id], onDelete: SetNull)
+  sourceQuestionId String?   @unique
+  sourceQuestion   Question? @relation(fields: [sourceQuestionId], references: [id], onDelete: SetNull)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([milestoneId, status, order])
+}
+
+model Meeting {
+  id              String    @id @default(cuid())
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestoneId     String?
+  milestone       Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  date            DateTime
+  nextMeetingDate DateTime?
+  itemsDiscussed  String?
+  achievements    String?
+  problems        String?
+  // One line per agreed action; each line can be converted into a Task
+  // that remembers this meeting via Task.sourceMeetingId.
+  nextTasks       String[]   @default([])
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  tasks           Task[]
+
+  @@index([projectId, date])
+}
+
+model Question {
+  id           String         @id @default(cuid())
+  projectId    String
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestoneId  String?
+  milestone    Milestone?     @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  title        String
+  status       QuestionStatus @default(OPEN)
+  raisedAt     DateTime       @default(now())
+  decidedAt    DateTime?
+  context      String?
+  ifWeDoIt     String?
+  whatItCosts  String?
+  ifWeDont     String?
+  decision     String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  task         Task?
+
+  @@index([projectId, status])
+}
+
+model Review {
+  id                 String       @id @default(cuid())
+  milestoneId        String       @unique
+  milestone          Milestone    @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  date               DateTime
+  verdict            ReviewVerdict
+  askedFor           String?
+  demonstrated       String?
+  promised           String?
+  supervisorFeedback String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+}
+
+model Evidence {
+  id           String       @id @default(cuid())
+  milestoneId  String
+  milestone    Milestone    @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  title        String
+  date         DateTime
+  type         EvidenceType
+  url          String?
+  whatItProves String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([milestoneId])
+}

@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fyp-planner-postgres
+    ports:
+      # Host 5433 because 5432 is often taken by other local projects.
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: fyp
+      POSTGRES_PASSWORD: fyp
+      POSTGRES_DB: fyp_planner
+    volumes:
+      - fyp-planner-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fyp -d fyp_planner"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  fyp-planner-data:

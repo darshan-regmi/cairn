@@ -1,11 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
   turbopack: {
     rules: {
+      // Required so Tailwind CSS v4 is processed in CSS files.
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
         as: "*.css",
