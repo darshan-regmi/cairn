@@ -7,6 +7,7 @@ import {
   saveTaskAction,
   type TaskActionState,
 } from "@/actions/tasks";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import {
   PRIORITIES,
   TASK_STATUSES,
@@ -34,14 +35,13 @@ export function TaskDialog({
   const editing = dialog.mode === "edit";
   const card = editing ? dialog.card : null;
 
-  const titleRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
-    titleRef.current?.focus();
-  }, []);
+  // Keep keyboard focus inside the dialog and restore it on close.
+  useFocusTrap(panelRef);
 
   // Esc closes the dialog.
   useEffect(() => {
@@ -90,7 +90,10 @@ export function TaskDialog({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-md rounded-lg border border-edge bg-surface p-5 shadow-lift">
+      <div
+        ref={panelRef}
+        className="w-full max-w-md rounded-lg border border-edge bg-surface p-5 shadow-lift"
+      >
         <h2 className="text-lg font-semibold tracking-tight">
           {editing ? "Edit task" : "Add task"}
         </h2>
@@ -104,7 +107,6 @@ export function TaskDialog({
               Title
             </label>
             <input
-              ref={titleRef}
               id="task-title"
               name="title"
               type="text"
