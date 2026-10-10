@@ -53,6 +53,43 @@ export const createMilestoneSchema = z
     { message: "End date must be on or after the start date.", path: ["plannedEnd"] },
   );
 
+// A project plan parsed from a GanttProject-style CSV. Dates stay as
+// YYYY-MM-DD strings here; the action converts them when writing to the DB.
+export const importProjectSchema = z
+  .object({
+    title: z.string().trim().min(1, "Give the project a title.").max(120),
+    startDate: dateInput,
+    endDate: dateInput,
+    goal: z.string().trim().max(500).nullish(),
+    milestones: z.array(
+      z
+        .object({
+          name: z.string().trim().min(1, "Give the milestone a name.").max(120),
+          plannedStart: dateInput,
+          plannedEnd: dateInput,
+          goal: z.string().trim().max(500).nullish(),
+          tasks: z.array(
+            z.object({
+              title: z.string().trim().min(1).max(120),
+              due: dateInput,
+              notes: z.string().trim().max(1000).nullish(),
+            }),
+          ),
+        })
+        .refine(
+          (input) => input.plannedEnd >= input.plannedStart,
+          {
+            message: "End date must be on or after the start date.",
+            path: ["plannedEnd"],
+          },
+        ),
+    ),
+  })
+  .refine(
+    (input) => input.endDate >= input.startDate,
+    { message: "End date must be on or after the start date.", path: ["endDate"] },
+  );
+
 export const milestoneStatusSchema = z.enum([
   "PLANNED",
   "IN_PROGRESS",
