@@ -90,7 +90,7 @@ export function TaskDialog({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-md rounded-lg border border-edge bg-canvas p-5 shadow-xl">
+      <div className="w-full max-w-md rounded-lg border border-edge bg-surface p-5 shadow-xl">
         <h2 className="text-lg font-semibold tracking-tight">
           {editing ? "Edit task" : "Add task"}
         </h2>
@@ -237,7 +237,7 @@ export function TaskDialog({
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white transition-opacity disabled:opacity-50"
+                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition-opacity disabled:opacity-50"
               >
                 {pending ? "Saving…" : editing ? "Save changes" : "Add task"}
               </button>

@@ -324,7 +324,7 @@ function SortableCard({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       {...listeners}
-      className={`group relative rounded-md border bg-canvas p-3 shadow-sm ${
+      className={`group relative rounded-md border bg-surface p-3 shadow-sm ${
         card.isOverdue
           ? "border-red-300 dark:border-red-900"
           : "border-edge"
@@ -389,7 +389,7 @@ function SortableCard({
 function OverlayCard({ card }: { card: KanbanCard }) {
   return (
     <div
-      className={`w-72 rotate-2 rounded-md border bg-canvas p-3 shadow-xl ${
+      className={`w-72 rotate-2 rounded-md border bg-surface p-3 shadow-xl ${
         card.isOverdue ? "border-red-300 dark:border-red-900" : "border-edge"
       }`}
     >

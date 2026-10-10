@@ -92,7 +92,7 @@ export default async function ProjectTimelinePage({
               className={`rounded-lg border p-5 transition-colors ${
                 milestone.current
                   ? "border-accent/60 bg-accent/5"
-                  : "border-edge bg-canvas"
+                  : "border-edge bg-surface"
               }`}
             >
               <div className="flex gap-4">

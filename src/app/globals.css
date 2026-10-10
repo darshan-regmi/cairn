@@ -2,30 +2,46 @@
 
 @theme {
   --color-canvas: var(--app-bg);
+  --color-surface: var(--app-surface);
   --color-fg: var(--app-fg);
   --color-muted: var(--app-muted);
   --color-edge: var(--app-edge);
   --color-accent: var(--app-accent);
+  --color-accent-ink: var(--app-accent-ink);
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
 }
 
+/*
+ * Navy  &  cream  —  a complementary pair from the color wheel.
+ *
+ * Dark mode is the navy family on top: deep-navy ink page (#010736), navy
+ * surfaces (#0D1C42 / #22396F) and cream forecourt (#FCF1D0).
+ *
+ * Light mode is the wheel's inverse: cream paper background with navy ink,
+ * and the navy mid-tones answered by their warm complements (soft tan edges,
+ * pale cream surfaces) so the same hierarchy survives the flip.
+ */
 :root {
-  --app-bg: #fafafa;
-  --app-fg: #18181b;
-  --app-muted: #71717a;
-  --app-edge: #e4e4e7;
-  --app-accent: #4f46e5;
+  --app-bg: #fcf1d0;
+  --app-fg: #010736;
+  --app-muted: #59546a;
+  --app-edge: #d3c39c;
+  --app-surface: #ede0bd;
+  --app-accent: #22396f;
+  --app-accent-ink: #fcf1d0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --app-bg: #0a0a0c;
-    --app-fg: #f4f4f5;
-    --app-muted: #a1a1aa;
-    --app-edge: #27272a;
-    --app-accent: #818cf8;
+    --app-bg: #010736;
+    --app-fg: #fcf1d0;
+    --app-muted: #a9a6b8;
+    --app-edge: #22396f;
+    --app-surface: #0d1c42;
+    --app-accent: #fcf1d0;
+    --app-accent-ink: #010736;
   }
 }
 

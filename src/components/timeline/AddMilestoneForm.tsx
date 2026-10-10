@@ -118,7 +118,7 @@ export function AddMilestoneForm({ projectId }: { projectId: string }) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink disabled:opacity-50"
           >
             {pending ? "Adding…" : "Add milestone"}
           </button>

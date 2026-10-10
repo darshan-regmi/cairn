@@ -60,7 +60,7 @@ export function ImportCsvForm() {
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white transition-[transform,opacity] duration-150 hover:opacity-90 disabled:opacity-50 motion-safe:active:scale-[0.97]"
+                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition-[transform,opacity] duration-150 hover:opacity-90 disabled:opacity-50 motion-safe:active:scale-[0.97]"
               >
                 {pending ? "Importing…" : "Import file"}
               </button>
