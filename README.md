@@ -1,34 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FYP Planner
 
-## Getting Started
+A planner for running your whole final year project: milestone timelines, a
+kanban task board, supervisor meeting logs, open questions, milestone reviews,
+and evidence collection for the final report and viva.
 
-First, run the development server:
+The app connects the pieces: a task agreed in a meeting can be turned into a
+kanban card in one click, an open question can be adopted as a task, and the
+planning history becomes material for the final report.
+
+## Tech stack
+
+- **Next.js 16** (App Router, React 19, TypeScript strict, Turbopack)
+- **Tailwind CSS v4** with a small set of design tokens and dark mode support
+- **Prisma 7** with PostgreSQL (driver adapter `@prisma/adapter-pg`)
+- **Auth.js v5** (NextAuth beta) — email/password via the Credentials provider,
+  JWT sessions
+- **Zod** — every server action re-validates its input
+- **Vitest** + **ESLint** + a **GitHub Actions** CI workflow
+- **docker compose** for local PostgreSQL
+- dnd-kit planned for the kanban drag and drop (Phase 1)
+
+## Prerequisites
+
+- Node.js 22+ (tested on 24)
+- Docker (for the local database)
+
+## Getting started
 
 ```bash
+# 1. Start PostgreSQL (host port 5433 — 5432 is often taken)
+docker compose up -d
+
+# 2. Create environment variables
+cp .env.example .env
+# then set AUTH_SECRET:  openssl rand -base64 32
+
+# 3. Install dependencies (generates the Prisma client automatically)
+npm install
+
+# 4. Apply migrations and seed a demo project
+npm run db:migrate   # first run: applies the init migration
+npm run db:seed
+
+# 5. Run the app
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Sign in with the demo account:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+email:    demo@example.com
+password: demo1234
+```
 
-## Learn More
+The seed creates one sample project with 7 milestones (dates relative to the
+day you seeded), 17 tasks in M1 across all statuses (including a blocked and
+an overdue one), two supervisor meetings (one with a task already converted),
+and three open questions (open, parked, and dropped).
 
-To learn more about Next.js, take a look at the following resources:
+## Useful commands
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command            | What it does                                  |
+| ------------------ | --------------------------------------------- |
+| `npm run dev`      | Start the dev server                          |
+| `npm run typecheck`| `tsc --noEmit`                                |
+| `npm run lint`     | ESLint flat config                            |
+| `npm test`         | Vitest (unit tests, no DB needed)             |
+| `npm run build`    | Production build                              |
+| `npm run db:up` / `db:down` | Start / stop the Postgres container   |
+| `npm run db:migrate` | Create and apply a migration (`prisma migrate dev`) |
+| `npm run db:deploy` | Apply existing migrations without creating   |
+| `npm run db:seed`  | Seed the demo project (re-runnable)           |
+| `npm run db:reset` | Drop, migrate, and seed from scratch          |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project layout
 
-## Deploy on Vercel
+```
+src/
+  app/                  # App Router pages
+    (auth)/login        # sign-in page
+    (auth)/signup       # create-account page
+    dashboard/          # protected placeholder home (Phases 3+)
+    api/auth/[...nextauth]  # Auth.js route handler
+  actions/auth.ts       # server action: sign-up (the only mutation entry point)
+  components/auth/      # client-side forms
+  lib/
+    auth.ts             # NextAuth config (Credentials + JWT)
+    prisma.ts           # Prisma client singleton
+    validation.ts       # Zod schemas
+    password.ts         # scrypt hashing (node:crypto, no native deps)
+  types/next-auth.d.ts  # session user.id typing
+prisma/
+  schema.prisma         # full data model
+  seed.ts               # demo data
+  migrations/           # versioned SQL migrations
+tests/                  # Vitest unit tests
+.github/workflows/ci.yml
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Conventions
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **All mutations are server actions.** One pattern, used everywhere.
+  NextAuth's route handler is the only exception (it must be a route).
+- **Every server action re-validates with Zod.**
+- **Every query is scoped to the owner** (`session.user.id`). The read-only
+  supervisor share link (Phase 4) is the only account-less access and is
+  limited to one project.
+- Business logic lives in plain functions under `src/lib` so it is testable
+  without the database.
+
+## Status
+
+- **Phase 0 (done):** scaffold, Docker Compose Postgres, Prisma schema with
+  first migration, Auth.js sign-up/login, protected dashboard placeholder,
+  seed script, Vitest, ESLint, CI workflow, README.
+- **Phase 1 (next):** project creation, milestone timeline, kanban board with
+  dnd-kit (drag between To do / In progress / Blocked / Done), overdue flags.
+- **Phases 2–4:** meetings, questions, reviews + dashboard, sharing and export.
