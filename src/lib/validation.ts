@@ -17,3 +17,78 @@ export const loginSchema = z.object({
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+
+// ---------- Phase 1: planning core ----------
+
+const dateInput = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use the date picker to pick a date.");
+
+const taskStatuses = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
+export const taskStatusSchema = z.enum(taskStatuses);
+
+const priorities = ["HIGH", "MEDIUM", "LOW"] as const;
+export const prioritySchema = z.enum(priorities);
+
+export const createProjectSchema = z
+  .object({
+    title: z.string().trim().min(1, "Give the project a title.").max(120),
+    startDate: dateInput,
+    endDate: dateInput,
+  })
+  .refine(
+    (input) => input.endDate >= input.startDate,
+    { message: "End date must be on or after the start date.", path: ["endDate"] },
+  );
+
+export const createMilestoneSchema = z
+  .object({
+    name: z.string().trim().min(1, "Give the milestone a name.").max(120),
+    plannedStart: dateInput,
+    plannedEnd: dateInput,
+    goal: z.string().trim().max(500).optional(),
+  })
+  .refine(
+    (input) => input.plannedEnd >= input.plannedStart,
+    { message: "End date must be on or after the start date.", path: ["plannedEnd"] },
+  );
+
+export const milestoneStatusSchema = z.enum([
+  "PLANNED",
+  "IN_PROGRESS",
+  "DONE",
+  "SLIPPED",
+]);
+
+export const saveTaskSchema = z.object({
+  taskId: z.string().min(1).optional(),
+  milestoneId: z.string().min(1, "Missing milestone."),
+  title: z.string().trim().min(1, "Give the task a title.").max(200),
+  status: taskStatusSchema,
+  priority: prioritySchema,
+  // Empty string from the date input means "no due date".
+  due: dateInput.nullish().transform((v) => (v ? new Date(`${v}T00:00:00`) : null)),
+  notes: z.string().trim().max(2000).optional(),
+  commit: z.string().trim().max(100).optional(),
+});
+
+export const deleteTaskSchema = z.object({
+  taskId: z.string().min(1),
+});
+
+export const moveTasksSchema = z.object({
+  milestoneId: z.string().min(1),
+  columns: z
+    .array(
+      z.object({
+        status: taskStatusSchema,
+        taskIds: z.array(z.string()),
+      }),
+    )
+    .min(1)
+    .max(4),
+});
+
+export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+export type SaveTaskInput = z.infer<typeof saveTaskSchema>;
+export type MoveTasksInput = z.infer<typeof moveTasksSchema>;
