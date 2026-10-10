@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { listProjectsForUser } from "@/lib/data";
 import { toDateInput } from "@/lib/milestone-metrics";
@@ -35,7 +36,7 @@ export default async function ProjectsPage() {
         <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => (
             <li key={project.id}>
-              <a
+              <Link
                 href={`/projects/${project.id}`}
                 className="group block rounded-lg border border-edge p-5 transition-colors hover:border-accent/50 hover:bg-accent/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
@@ -50,7 +51,7 @@ export default async function ProjectsPage() {
                   {project._count.milestones}{" "}
                   {project._count.milestones === 1 ? "milestone" : "milestones"}
                 </p>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

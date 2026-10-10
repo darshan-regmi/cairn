@@ -105,12 +105,12 @@ export default async function ProjectTimelinePage({
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <a
+                    <Link
                       href={`/projects/${project.id}/milestones/${milestone.id}`}
                       className="font-medium text-fg transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
                       {milestone.name}
-                    </a>
+                    </Link>
                     <span
                       className={`text-xs font-medium ${
                         (milestone.status as MilestoneStatus) === "DONE"
