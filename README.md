@@ -87,11 +87,11 @@ src/
     api/auth/[...nextauth]  # Auth.js route handler
   actions/
     auth.ts             # server action: sign-up
-    projects.ts         # createProject, createMilestone, updateMilestoneStatus
+    projects.ts         # createProject, importProject, createMilestone, updateMilestoneStatus
     tasks.ts            # saveTask, deleteTask, moveTasks
   components/
     auth/               # client-side sign-in/sign-up forms
-    projects/           # create-project form
+    projects/           # create-project + CSV import forms
     timeline/           # add-milestone form, milestone status control
     kanban/             # KanbanBoard (dnd-kit), TaskDialog
     ProgressBar.tsx     # shared progress bar
@@ -100,6 +100,7 @@ src/
     auth.ts             # NextAuth config (Credentials + JWT)
     prisma.ts           # Prisma client singleton
     validation.ts       # Zod schemas
+    csv-import.ts       # pure GanttProject CSV → project plan parser
     password.ts         # scrypt hashing (node:crypto, no native deps)
     data.ts             # owner-scoped read queries
     milestone-metrics.ts# pure progress / overdue / days-left helpers
@@ -127,6 +128,22 @@ tests/                  # Vitest unit tests + DB-backed authorization tests
 - Dates are date-only values stored as local midnight; progress, overdue, and
   days-left are computed by one shared utility with edge-case tests.
 
+## Importing a plan from CSV
+
+The projects page can import a **GanttProject-style CSV** (File → Export → CSV).
+One project per file; rows are matched by their outline id under the `i`
+column:
+
+- depth-1 rows → the project (its `Notes` become the project goal),
+- depth-2 rows → milestones (groups, order kept, `Notes` → goal),
+- depth-3 rows → tasks (`End Date` → due, TODO/MEDIUM, `Notes` kept and a
+  `Depends on: …` line added from `Predecessors`; tasks are ordered after
+  their dependencies).
+
+Only the columns **i, Name/Title, Start Date, End Date, Predecessors, Notes**
+are read, so the rest of the export (hours, resources, colours…) is ignored.
+Importing the same title + dates twice for the same user is refused.
+
 ## Status
 
 - **Phase 0 (done):** scaffold, Docker Compose Postgres, Prisma schema with
@@ -136,4 +153,8 @@ tests/                  # Vitest unit tests + DB-backed authorization tests
   one-click status changes, dnd-kit kanban (drag between To do / In progress /
   Blocked / Done + reorder), task add/edit/delete, overdue flags, owner-scoped
   DB tests, CI runs migrations before tests.
+- **CSV import (done):** pure GanttProject CSV parser with row-scoped errors
+  and tests, project goal column + timeline display, owner-scoped import
+  server action (single transaction, duplicate guard), and an inline import
+  form on the projects page.
 - **Phases 2–4:** meetings, questions, reviews + dashboard, sharing and export.

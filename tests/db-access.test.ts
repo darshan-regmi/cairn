@@ -124,4 +124,76 @@ describeDb("DB-backed authorization", () => {
       expect(await findTaskForUser(missing, ownerId)).toBeNull();
     });
   });
+
+  describe("imported plans stay owner-scoped", () => {
+    // Mirrors the shape importProjectAction writes: a project with a goal,
+    // milestones with goals/order and tasks with notes and due dates.
+    let importedProjectId = "";
+    let importedMilestoneId = "";
+    let importedTaskId = "";
+
+    beforeAll(async () => {
+      const tag = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const project = await prisma.project.create({
+        data: {
+          title: `Imported plan ${tag}`,
+          goal: "Plan imported from a CSV",
+          ownerId,
+          startDate: new Date(2026, 0, 1),
+          endDate: new Date(2026, 11, 31),
+        },
+      });
+      const milestone = await prisma.milestone.create({
+        data: {
+          projectId: project.id,
+          name: "Phase 1 (M1): Foundation",
+          goal: "Server skeleton, auth, DB schema",
+          plannedStart: new Date(2026, 0, 1),
+          plannedEnd: new Date(2026, 1, 28),
+          order: 0,
+        },
+      });
+      const task = await prisma.task.create({
+        data: {
+          milestoneId: milestone.id,
+          title: "Design the schema",
+          status: "TODO",
+          priority: "MEDIUM",
+          order: 0,
+          due: new Date(2026, 0, 10),
+          notes: "Users, nodes, chunks\nDepends on: Set up the repo",
+        },
+      });
+      importedProjectId = project.id;
+      importedMilestoneId = milestone.id;
+      importedTaskId = task.id;
+    });
+
+    it("hides an imported project from other users", async () => {
+      expect(
+        await findProjectForUser(importedProjectId, ownerId),
+      ).not.toBeNull();
+      expect(await findProjectForUser(importedProjectId, intruderId)).toBeNull();
+      expect(
+        (await listProjectsForUser(intruderId)).some(
+          (p) => p.id === importedProjectId,
+        ),
+      ).toBe(false);
+    });
+
+    it("scopes an imported milestone and its tasks to the owner", async () => {
+      const ownerMilestone = await findMilestoneForUser(
+        importedMilestoneId,
+        ownerId,
+      );
+      expect(ownerMilestone?.goal).toBe("Server skeleton, auth, DB schema");
+      expect(
+        await findMilestoneForUser(importedMilestoneId, intruderId),
+      ).toBeNull();
+
+      const ownerTask = await findTaskForUser(importedTaskId, ownerId);
+      expect(ownerTask?.notes).toContain("Depends on:");
+      expect(await findTaskForUser(importedTaskId, intruderId)).toBeNull();
+    });
+  });
 });
