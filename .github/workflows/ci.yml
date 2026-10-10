@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fyp
+          POSTGRES_PASSWORD: fyp
+          POSTGRES_DB: fyp_planner
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fyp -d fyp_planner"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://fyp:fyp@localhost:5432/fyp_planner
+      AUTH_SECRET: ci-only-secret-not-used-by-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
+      - name: Verify migrations apply from clean
+        run: npm run db:deploy
+      - name: Build
+        run: npm run build
+        env:
+          AUTH_SECRET: ci-only-secret-not-used-by-tests
