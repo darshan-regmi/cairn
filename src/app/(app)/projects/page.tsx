@@ -13,7 +13,7 @@ export default async function ProjectsPage() {
   const projects = await listProjectsForUser(session.user.id);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10">
+    <main id="main-content" className="mx-auto w-full max-w-6xl px-4 py-10">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
         <p className="mt-1 text-sm text-muted">

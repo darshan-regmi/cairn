@@ -74,7 +74,7 @@ export function ImportCsvForm() {
             {state.error && (
               <p
                 role="alert"
-                className="mt-3 border-l-2 border-red-500 pl-3 text-sm leading-relaxed text-red-600 dark:text-red-400"
+                className="mt-3 border-l-2 border-red-500 pl-3 text-sm leading-relaxed text-red-700 dark:text-red-400"
               >
                 {state.error}
               </p>

@@ -78,7 +78,7 @@ export function CreateProjectForm() {
         </button>
       </div>
       {state.error && (
-        <p className="mt-3 text-sm text-red-600 dark:text-red-400">
+        <p className="mt-3 text-sm text-red-700 dark:text-red-400">
           {state.error}
         </p>
       )}

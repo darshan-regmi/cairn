@@ -81,7 +81,7 @@ export function SignUpForm() {
       </div>
 
       {state.error && (
-        <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+        <p className="text-sm text-red-700 dark:text-red-400">{state.error}</p>
       )}
 
       <button

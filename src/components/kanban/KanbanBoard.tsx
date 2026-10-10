@@ -269,7 +269,7 @@ function KanbanColumn({
           <h2 className="text-sm font-medium">
             {taskStatusLabel[column.status]}
           </h2>
-          <span className="rounded-full bg-edge px-1.5 text-xs text-muted">
+          <span className="rounded-full bg-edge px-1.5 text-xs text-fg">
             {column.cards.length}
           </span>
         </div>
@@ -324,7 +324,12 @@ function SortableCard({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       {...listeners}
-      className={`group relative rounded-md border bg-surface p-3 shadow-sm ${
+      // dnd-kit makes the sortable node role="button". This card also contains
+      // a real Edit button, so that nested interactive controls (axe:
+      // nested-interactive) and stops the <li> being a valid list item (axe:
+      // list). Keep its keyboard drag affordance but restore list semantics.
+      role="listitem"
+      className={`group relative rounded-md border bg-surface p-3 ${
         card.isOverdue
           ? "border-red-300 dark:border-red-900"
           : "border-edge"
@@ -333,7 +338,7 @@ function SortableCard({
       {card.isOverdue && (
         <span
           aria-label="Overdue"
-          className="absolute -top-1.5 right-2 rounded-full bg-red-500 px-1.5 py-px text-[10px] font-semibold text-white"
+          className="absolute -top-1.5 right-2 rounded-full bg-red-600 px-1.5 py-px text-[10px] font-semibold text-white"
         >
           Overdue
         </span>
@@ -349,7 +354,7 @@ function SortableCard({
           <span
             className={`text-xs ${
               card.isOverdue
-                ? "font-medium text-red-600 dark:text-red-400"
+                ? "font-medium text-red-700 dark:text-red-400"
                 : "text-muted"
             }`}
           >
@@ -362,7 +367,7 @@ function SortableCard({
           </span>
         )}
         {card.commit && (
-          <code className="rounded bg-edge px-1 py-px text-[10px] text-muted">
+          <code className="rounded bg-edge px-1 py-px text-[10px] text-fg">
             {card.commit}
           </code>
         )}

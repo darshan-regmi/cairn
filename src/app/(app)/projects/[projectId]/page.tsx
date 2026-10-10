@@ -51,7 +51,7 @@ export default async function ProjectTimelinePage({
   });
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-10">
+    <main id="main-content" className="mx-auto w-full max-w-4xl px-4 py-10">
       <Link
         href="/projects"
         className="text-sm text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -116,7 +116,7 @@ export default async function ProjectTimelinePage({
                         (milestone.status as MilestoneStatus) === "DONE"
                           ? "text-emerald-600 dark:text-emerald-400"
                           : milestone.days < 0
-                            ? "text-red-600 dark:text-red-400"
+                            ? "text-red-700 dark:text-red-400"
                             : "text-muted"
                       }`}
                     >

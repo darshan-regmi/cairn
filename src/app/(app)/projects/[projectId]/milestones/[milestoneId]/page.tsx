@@ -64,7 +64,7 @@ export default async function MilestoneKanbanPage({
   );
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-10">
+    <main id="main-content" className="mx-auto w-full max-w-7xl px-4 py-10">
       <a
         href={`/projects/${milestone.projectId}`}
         className="text-sm text-muted transition-colors hover:text-fg"
@@ -90,7 +90,7 @@ export default async function MilestoneKanbanPage({
               milestone.status === "DONE"
                 ? "text-emerald-600 dark:text-emerald-400"
                 : daysLeft(milestone, today) < 0
-                  ? "font-medium text-red-600 dark:text-red-400"
+                  ? "font-medium text-red-700 dark:text-red-400"
                   : "text-muted"
             }`}
           >

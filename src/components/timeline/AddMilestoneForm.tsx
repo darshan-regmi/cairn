@@ -112,7 +112,7 @@ export function AddMilestoneForm({ projectId }: { projectId: string }) {
           />
         </div>
         {error && (
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
         )}
         <div className="flex gap-2">
           <button

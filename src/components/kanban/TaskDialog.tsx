@@ -200,7 +200,7 @@ export function TaskDialog({
           </div>
 
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
           )}
 
           <div className="flex items-center justify-between gap-2">
@@ -210,7 +210,7 @@ export function TaskDialog({
                   type="button"
                   onClick={handleDelete}
                   disabled={pending}
-                  className="text-sm text-muted transition-colors hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="text-sm text-muted transition-colors hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   Delete task
                 </button>
@@ -220,7 +220,7 @@ export function TaskDialog({
                   type="button"
                   onClick={handleDelete}
                   disabled={pending}
-                  className="text-sm font-medium text-red-600 dark:text-red-400"
+                  className="text-sm font-medium text-red-700 dark:text-red-400"
                 >
                   {pending ? "Deleting…" : "Really delete?"}
                 </button>
