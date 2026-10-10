@@ -27,7 +27,7 @@ export function SignUpForm() {
       if (result?.error) {
         router.push("/login?registered=1");
       } else {
-        router.push("/dashboard");
+        router.push("/projects");
         router.refresh();
       }
     });

@@ -8,7 +8,7 @@ export default async function LoginPage({
   searchParams: Promise<{ registered?: string }>;
 }) {
   const session = await auth();
-  if (session?.user) redirect("/dashboard");
+  if (session?.user) redirect("/projects");
 
   const { registered } = await searchParams;
 
