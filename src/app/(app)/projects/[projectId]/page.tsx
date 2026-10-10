@@ -64,6 +64,9 @@ export default async function ProjectTimelinePage({
           <h1 className="text-2xl font-semibold tracking-tight">
             {project.title}
           </h1>
+          {project.goal && (
+            <p className="mt-1 max-w-xl text-sm text-muted">{project.goal}</p>
+          )}
           <p className="mt-1 text-sm text-muted">
             {toDateInput(project.startDate)} → {toDateInput(project.endDate)}
           </p>
