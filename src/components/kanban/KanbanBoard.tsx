@@ -257,7 +257,7 @@ function KanbanColumn({
       className={`flex min-h-32 flex-col rounded-lg border p-3 transition-colors ${
         isOver
           ? "border-accent bg-accent/10"
-          : "border-edge bg-black/[0.02] dark:bg-white/[0.04]"
+          : "border-edge bg-accent/[0.04]"
       }`}
     >
       <header className="flex items-center justify-between px-1 pb-2">
