@@ -1,7 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { findQuestionsForUser, listCommentsForTargets } from "@/lib/data";
+import {
+  findQuestionsForUser,
+  listCommentsForTargets,
+  projectExists,
+} from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
 import { deleteQuestionAction } from "@/actions/questions";
 import { toDateInput } from "@/lib/milestone-metrics";
@@ -53,7 +57,10 @@ export default async function QuestionsPage({
 
   const { projectId } = await params;
   const project = await findQuestionsForUser(projectId, session.user.id);
-  if (!project) notFound();
+  if (!project) {
+    if (await projectExists(projectId)) redirect("/no-access");
+    notFound();
+  }
 
   // Supervisors read questions through the read-only supervisor view.
   const role = await projectRoleFor(project.id, session.user.id);

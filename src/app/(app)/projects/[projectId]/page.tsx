@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { findProjectForUser } from "@/lib/data";
+import { findProjectForUser, projectExists } from "@/lib/data";
 import { listPendingInvitesForProject, listSupervisorsForProject } from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
 import { removeSupervisorAction, revokeInviteAction } from "@/actions/invites";
@@ -49,7 +49,10 @@ export default async function ProjectTimelinePage({
 
   const { projectId } = await params;
   const project = await findProjectForUser(projectId, session.user.id);
-  if (!project) notFound();
+  if (!project) {
+    if (await projectExists(projectId)) redirect("/no-access");
+    notFound();
+  }
 
   // Supervisors get the read-only page, never the editing one.
   const role = await projectRoleFor(project.id, session.user.id);

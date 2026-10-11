@@ -93,6 +93,18 @@ export function findCommentsReadAt(userId: string) {
   });
 }
 
+/**
+ * Whether a project id exists at all. Used to tell "no access" (the project is
+ * real but the user is not a member) apart from a genuine 404.
+ */
+export async function projectExists(projectId: string): Promise<boolean> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true },
+  });
+  return project !== null;
+}
+
 /** Projects the user supervises (supervisor home list). */
 export function listSupervisedProjectsForUser(userId: string) {
   return prisma.project.findMany({

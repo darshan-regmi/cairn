@@ -5,6 +5,7 @@ import {
   findMilestoneForUser,
   listCommentsForTarget,
   listCommentsForTargets,
+  projectExists,
 } from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
 import {
@@ -46,9 +47,12 @@ export default async function MilestoneKanbanPage({
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const { milestoneId } = await params;
+  const { projectId, milestoneId } = await params;
   const milestone = await findMilestoneForUser(milestoneId, session.user.id);
-  if (!milestone) notFound();
+  if (!milestone) {
+    if (await projectExists(projectId)) redirect("/no-access");
+    notFound();
+  }
 
   // Supervisors read through /supervisor/[projectId], not the editing board.
   const role = await projectRoleFor(milestone.projectId, session.user.id);

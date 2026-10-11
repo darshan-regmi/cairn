@@ -1,7 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { findSupervisorProject, listCommentsForTargets } from "@/lib/data";
+import {
+  findSupervisorProject,
+  listCommentsForTargets,
+  projectExists,
+} from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
 import {
   daysLeft,
@@ -45,7 +49,10 @@ export default async function SupervisorProjectPage({
 
   // Owners use the editable page; only supervisors get the read-only view.
   const role = await projectRoleFor(projectId, session.user.id);
-  if (role === null) notFound();
+  if (role === null) {
+    if (await projectExists(projectId)) redirect("/no-access");
+    notFound();
+  }
   if (role === "OWNER") redirect(`/projects/${projectId}`);
 
   const project = await findSupervisorProject(projectId, session.user.id);

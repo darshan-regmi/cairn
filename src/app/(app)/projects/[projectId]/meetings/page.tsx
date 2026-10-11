@@ -1,7 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { findMeetingsForUser, listCommentsForTargets } from "@/lib/data";
+import {
+  findMeetingsForUser,
+  listCommentsForTargets,
+  projectExists,
+} from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
 import { deleteMeetingAction, deleteMeetingTaskAction } from "@/actions/meetings";
 import { toDateInput } from "@/lib/milestone-metrics";
@@ -47,7 +51,10 @@ export default async function MeetingsPage({
 
   const { projectId } = await params;
   const project = await findMeetingsForUser(projectId, session.user.id);
-  if (!project) notFound();
+  if (!project) {
+    if (await projectExists(projectId)) redirect("/no-access");
+    notFound();
+  }
 
   // Supervisors read meetings through the read-only supervisor view.
   const role = await projectRoleFor(project.id, session.user.id);

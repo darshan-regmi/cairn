@@ -15,6 +15,7 @@ import {
   listOwnedProjectsForUser,
   listProjectsForUser,
   listSupervisedProjectsForUser,
+  projectExists,
 } from "@/lib/data";
 
 /**
@@ -163,6 +164,13 @@ describeDb("DB-backed authorization", () => {
       expect(await findProjectForUser(missing, ownerId)).toBeNull();
       expect(await findMilestoneForUser(missing, ownerId)).toBeNull();
       expect(await findTaskForUser(missing, ownerId)).toBeNull();
+    });
+  });
+
+  describe("no-access vs not-found", () => {
+    it("tells a real project apart from a missing one", async () => {
+      expect(await projectExists(projectId)).toBe(true);
+      expect(await projectExists("cafebabe".repeat(3))).toBe(false);
     });
   });
 
