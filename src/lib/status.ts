@@ -142,3 +142,31 @@ export const reviewVerdictTone: Record<ReviewVerdict, StatusTone> = {
   PARTLY_MET: "amber",
   OFF_TRACK: "red",
 };
+
+export const EVIDENCE_TYPES = [
+  "DEMO",
+  "SCREENSHOT",
+  "TEST_RESULT",
+  "BENCHMARK",
+  "COMMIT_OR_PR",
+  "SUPERVISOR_FEEDBACK",
+] as const;
+export type EvidenceType = (typeof EVIDENCE_TYPES)[number];
+
+export const evidenceTypeLabel: Record<EvidenceType, string> = {
+  DEMO: "Demo",
+  SCREENSHOT: "Screenshot",
+  TEST_RESULT: "Test result",
+  BENCHMARK: "Benchmark",
+  COMMIT_OR_PR: "Commit / PR",
+  SUPERVISOR_FEEDBACK: "Supervisor feedback",
+};
+
+export const evidenceTypeTone: Record<EvidenceType, StatusTone> = {
+  DEMO: "accent",
+  SCREENSHOT: "blue",
+  TEST_RESULT: "emerald",
+  BENCHMARK: "amber",
+  COMMIT_OR_PR: "zinc",
+  SUPERVISOR_FEEDBACK: "blue",
+};

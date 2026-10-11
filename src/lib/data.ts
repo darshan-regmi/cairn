@@ -117,6 +117,7 @@ export function findMilestoneForUser(milestoneId: string, userId: string) {
     include: {
       project: true,
       review: true,
+      evidence: { orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
       tasks: {
         orderBy: [{ status: "asc" }, { order: "asc" }],
       },
@@ -141,6 +142,7 @@ export function findSupervisorProject(projectId: string, userId: string) {
         orderBy: [{ order: "asc" }, { plannedStart: "asc" }],
         include: {
           review: true,
+          evidence: { orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
           tasks: { select: { status: true } },
         },
       },

@@ -81,7 +81,7 @@ src/
     (app)/              # protected pages (auth guard + header live here)
       projects/         # dashboard overview + project grid + create/import
       projects/[projectId]/            # milestone timeline + supervisors + share link
-      projects/[projectId]/milestones/[milestoneId]  # kanban board + review + comments
+      projects/[projectId]/milestones/[milestoneId]  # kanban board + evidence + review + comments
       projects/[projectId]/meetings/   # supervision meeting log + action -> task
       projects/[projectId]/questions/  # open questions + adopt -> task
       supervisor/       # projects you supervise (read-only)
@@ -101,6 +101,7 @@ src/
     questions.ts        # createQuestion, updateQuestion, deleteQuestion, setStatus, adoptAsTask
     reviews.ts          # saveReview (upsert), deleteReview
     share.ts            # saveShareLink (create / set expiry), revokeShareLink
+    evidence.ts         # createEvidence, updateEvidence, deleteEvidence (owner only)
   components/
     auth/               # client-side sign-in/sign-up forms
     projects/           # create-project + CSV import forms
@@ -111,6 +112,7 @@ src/
     meetings/           # meeting form + convert/add action controls
     questions/          # question form + status/adopt controls
     reviews/            # review card + record/edit panel
+    evidence/           # evidence card + add/edit/delete section
     share/              # share-link panel (create, copy, expire, revoke)
     ProgressBar.tsx     # shared progress bar
     StatusBadge.tsx     # shared status badge
@@ -214,5 +216,9 @@ Importing the same title + dates twice for the same user is refused.
   project. Anyone holding it can view the milestones, their tasks and the
   review verdicts with no account, and the owner can set an optional expiry or
   revoke it in one click. That completes the v1 read story.
-- **Still to build:** export, plus the v1.5 (evidence, report helper, all-tasks
-  view, settings, notifications) and v2 (self-hosting polish) items.
+- **Evidence on milestones (done):** collect the links that prove a milestone —
+  demo, screenshot, test result, benchmark, commit/PR or supervisor feedback,
+  each with a date, an optional URL and an optional note on what it proves.
+  Owners add, edit and delete on the board; supervisors see the list read-only.
+- **Still to build:** export, plus the v1.5 (report helper, all-tasks view,
+  settings, notifications) and v2 (self-hosting polish) items.

@@ -15,11 +15,13 @@ import {
   type CommentItem,
 } from "@/components/comments/CommentSection";
 import { ReviewCard } from "@/components/reviews/ReviewCard";
+import { EvidenceCard } from "@/components/evidence/EvidenceCard";
 import {
   milestoneStatusLabel,
   milestoneStatusTone,
   questionStatusLabel,
   questionStatusTone,
+  type EvidenceType,
   type MilestoneStatus,
   type QuestionStatus,
   type ReviewVerdict,
@@ -160,6 +162,28 @@ export default async function SupervisorProjectPage({
                     </p>
                   )}
                 </div>
+
+                {milestone.evidence.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-xs font-medium text-muted">Evidence</p>
+                    <ul className="mt-1 space-y-2">
+                      {milestone.evidence.map((item) => (
+                        <li key={item.id}>
+                          <EvidenceCard
+                            evidence={{
+                              id: item.id,
+                              title: item.title,
+                              date: toDateInput(item.date),
+                              type: item.type as EvidenceType,
+                              url: item.url,
+                              whatItProves: item.whatItProves,
+                            }}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 <div className="mt-4">
                   <CommentSection

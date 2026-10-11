@@ -302,3 +302,48 @@ export const shareTokenSchema = z
   .string()
   .trim()
   .regex(/^[0-9a-f]{32}$/, "This share link is not valid.");
+
+// ---------- Evidence ----------
+
+const evidenceTypes = [
+  "DEMO",
+  "SCREENSHOT",
+  "TEST_RESULT",
+  "BENCHMARK",
+  "COMMIT_OR_PR",
+  "SUPERVISOR_FEEDBACK",
+] as const;
+
+// Optional evidence link: blank stays null, otherwise it must be an http(s)
+// URL (no javascript: or other schemes, since it is rendered as a link).
+const optionalEvidenceUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .nullish()
+  .transform((value) => (value ? value : null))
+  .refine((value) => value === null || /^https?:\/\/\S+$/i.test(value), {
+    message: "Enter a link starting with http:// or https://.",
+  });
+
+const evidenceFields = {
+  title: z.string().trim().min(1, "Give the evidence a title.").max(200),
+  date: dateInput,
+  type: z.enum(evidenceTypes),
+  url: optionalEvidenceUrl,
+  whatItProves: optionalNote,
+};
+
+export const createEvidenceSchema = z.object({
+  milestoneId: z.string().min(1, "Missing milestone."),
+  ...evidenceFields,
+});
+
+export const updateEvidenceSchema = z.object({
+  evidenceId: z.string().min(1, "Missing evidence."),
+  ...evidenceFields,
+});
+
+export const deleteEvidenceSchema = z.object({
+  evidenceId: z.string().min(1, "Missing evidence."),
+});

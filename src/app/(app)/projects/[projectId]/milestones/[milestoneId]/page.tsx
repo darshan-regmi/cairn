@@ -16,10 +16,12 @@ import {
 } from "@/components/comments/CommentSection";
 import { ReviewCard } from "@/components/reviews/ReviewCard";
 import { ReviewFormPanel } from "@/components/reviews/ReviewForm";
+import { EvidenceSection } from "@/components/evidence/EvidenceSection";
 import { deleteReviewAction } from "@/actions/reviews";
 import {
   milestoneStatusLabel,
   milestoneStatusTone,
+  type EvidenceType,
   type MilestoneStatus,
   type ReviewVerdict,
 } from "@/lib/status";
@@ -95,6 +97,15 @@ export default async function MilestoneKanbanPage({
     ]),
   );
 
+  const evidence = milestone.evidence.map((item) => ({
+    id: item.id,
+    title: item.title,
+    date: toDateInput(item.date),
+    type: item.type as EvidenceType,
+    url: item.url,
+    whatItProves: item.whatItProves,
+  }));
+
   return (
     <main id="main-content" className="mx-auto w-full max-w-7xl px-4 py-12">
       <Link
@@ -139,6 +150,8 @@ export default async function MilestoneKanbanPage({
         milestoneId={milestone.id}
         initialCards={cards}
       />
+
+      <EvidenceSection milestoneId={milestone.id} items={evidence} />
 
       <section className="mt-10 max-w-3xl">
         <div className="flex flex-wrap items-center justify-between gap-3">

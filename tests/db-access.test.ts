@@ -377,6 +377,50 @@ describeDb("DB-backed authorization", () => {
     });
   });
 
+  describe("milestone evidence", () => {
+    it("attaches evidence to a milestone for the owner", async () => {
+      await prisma.evidence.create({
+        data: {
+          milestoneId,
+          title: "End-to-end upload demo",
+          date: new Date(2026, 1, 10),
+          type: "DEMO",
+          url: "https://example.com/demo",
+          whatItProves: "The happy path works end to end.",
+        },
+      });
+
+      const view = await findMilestoneForUser(milestoneId, ownerId);
+      expect(view?.evidence).toHaveLength(1);
+      expect(view?.evidence[0]?.type).toBe("DEMO");
+      expect(view?.evidence[0]?.url).toContain("example.com");
+    });
+
+    it("lists the newest evidence first", async () => {
+      await prisma.evidence.create({
+        data: {
+          milestoneId,
+          title: "Older benchmark",
+          date: new Date(2026, 1, 1),
+          type: "BENCHMARK",
+        },
+      });
+
+      const view = await findMilestoneForUser(milestoneId, ownerId);
+      expect(view?.evidence.map((item) => item.title)).toEqual([
+        "End-to-end upload demo",
+        "Older benchmark",
+      ]);
+    });
+
+    it("shows evidence to a supervisor through the supervised project", async () => {
+      const view = await findSupervisorProject(projectId, supervisorId);
+      const milestone = view?.milestones.find((m) => m.id === milestoneId);
+      expect(milestone?.evidence).toHaveLength(2);
+      expect(milestone?.evidence[0]?.title).toContain("upload demo");
+    });
+  });
+
   describe("dashboard overview", () => {
     it("returns the owner's projects with their milestones and tasks", async () => {
       const rows = await findDashboardForUser(ownerId);
