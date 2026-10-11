@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { findSupervisorProject, listCommentsForTarget } from "@/lib/data";
+import { findSupervisorProject, listCommentsForTargets } from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
 import {
   daysLeft,
@@ -10,10 +10,8 @@ import {
 } from "@/lib/milestone-metrics";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatusBadge } from "@/components/StatusBadge";
-import {
-  CommentSection,
-  type CommentItem,
-} from "@/components/comments/CommentSection";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { groupCommentsByTarget } from "@/lib/comments";
 import { ReviewCard } from "@/components/reviews/ReviewCard";
 import { EvidenceCard } from "@/components/evidence/EvidenceCard";
 import {
@@ -26,20 +24,6 @@ import {
   type QuestionStatus,
   type ReviewVerdict,
 } from "@/lib/status";
-
-type CommentRows = Awaited<ReturnType<typeof listCommentsForTarget>>;
-
-function toCommentItems(rows: CommentRows): CommentItem[] {
-  return rows.map((comment) => ({
-    id: comment.id,
-    body: comment.body,
-    createdAt: comment.createdAt.toISOString(),
-    editedAt: comment.editedAt ? comment.editedAt.toISOString() : null,
-    authorId: comment.authorId,
-    authorName: comment.author.name,
-    authorEmail: comment.author.email,
-  }));
-}
 
 function daysLeftLabel(days: number): string {
   if (days === 0) return "Ends today";
@@ -68,16 +52,47 @@ export default async function SupervisorProjectPage({
   if (!project) notFound();
 
   const today = new Date();
-  const milestones = await Promise.all(
-    project.milestones.map(async (milestone) => ({
-      milestone,
-      progress: taskProgress(milestone.tasks),
-      days: daysLeft(milestone, today),
-      comments: toCommentItems(
-        await listCommentsForTarget("MILESTONE", milestone.id),
-      ),
-    })),
+  const milestones = project.milestones.map((milestone) => ({
+    milestone,
+    progress: taskProgress(milestone.tasks),
+    days: daysLeft(milestone, today),
+  }));
+
+  const reviewIds = project.milestones
+    .map((milestone) => milestone.review?.id)
+    .filter((id): id is string => Boolean(id));
+  const evidenceIds = project.milestones.flatMap((milestone) =>
+    milestone.evidence.map((item) => item.id),
   );
+
+  const [
+    milestoneCommentRows,
+    reviewCommentRows,
+    evidenceCommentRows,
+    meetingCommentRows,
+    questionCommentRows,
+  ] = await Promise.all([
+    listCommentsForTargets(
+      "MILESTONE",
+      project.milestones.map((milestone) => milestone.id),
+    ),
+    listCommentsForTargets("REVIEW", reviewIds),
+    listCommentsForTargets("EVIDENCE", evidenceIds),
+    listCommentsForTargets(
+      "MEETING",
+      project.meetings.map((meeting) => meeting.id),
+    ),
+    listCommentsForTargets(
+      "QUESTION",
+      project.questions.map((question) => question.id),
+    ),
+  ]);
+
+  const commentsByMilestone = groupCommentsByTarget(milestoneCommentRows);
+  const commentsByReview = groupCommentsByTarget(reviewCommentRows);
+  const commentsByEvidence = groupCommentsByTarget(evidenceCommentRows);
+  const commentsByMeeting = groupCommentsByTarget(meetingCommentRows);
+  const commentsByQuestion = groupCommentsByTarget(questionCommentRows);
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-4xl px-4 py-12">
@@ -111,7 +126,7 @@ export default async function SupervisorProjectPage({
           <p className="mt-2 text-sm text-muted">No milestones yet.</p>
         ) : (
           <ol className="mt-4 space-y-5">
-            {milestones.map(({ milestone, progress, days, comments }) => (
+            {milestones.map(({ milestone, progress, days }) => (
               <li key={milestone.id} className="rounded-lg border border-edge p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="font-medium">{milestone.name}</h3>
@@ -163,6 +178,18 @@ export default async function SupervisorProjectPage({
                   )}
                 </div>
 
+                {milestone.review && (
+                  <div className="mt-3">
+                    <CommentSection
+                      key={`review-${milestone.review.id}-${(commentsByReview[milestone.review.id] ?? []).map((c) => c.id).join("-")}`}
+                      targetType="REVIEW"
+                      targetId={milestone.review.id}
+                      currentUserId={session.user.id}
+                      initialComments={commentsByReview[milestone.review.id] ?? []}
+                    />
+                  </div>
+                )}
+
                 {milestone.evidence.length > 0 && (
                   <div className="mt-4">
                     <p className="text-xs font-medium text-muted">Evidence</p>
@@ -179,6 +206,15 @@ export default async function SupervisorProjectPage({
                               whatItProves: item.whatItProves,
                             }}
                           />
+                          <div className="mt-2">
+                            <CommentSection
+                              key={`evidence-${item.id}-${(commentsByEvidence[item.id] ?? []).map((c) => c.id).join("-")}`}
+                              targetType="EVIDENCE"
+                              targetId={item.id}
+                              currentUserId={session.user.id}
+                              initialComments={commentsByEvidence[item.id] ?? []}
+                            />
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -187,11 +223,11 @@ export default async function SupervisorProjectPage({
 
                 <div className="mt-4">
                   <CommentSection
-                    key={`milestone-${milestone.id}-${comments.map((c) => c.id).join("-")}`}
+                    key={`milestone-${milestone.id}-${(commentsByMilestone[milestone.id] ?? []).map((c) => c.id).join("-")}`}
                     targetType="MILESTONE"
                     targetId={milestone.id}
                     currentUserId={session.user.id}
-                    initialComments={comments}
+                    initialComments={commentsByMilestone[milestone.id] ?? []}
                   />
                 </div>
               </li>
@@ -248,6 +284,16 @@ export default async function SupervisorProjectPage({
                     </ul>
                   </div>
                 )}
+
+                <div className="mt-3">
+                  <CommentSection
+                    key={`meeting-${meeting.id}-${(commentsByMeeting[meeting.id] ?? []).map((c) => c.id).join("-")}`}
+                    targetType="MEETING"
+                    targetId={meeting.id}
+                    currentUserId={session.user.id}
+                    initialComments={commentsByMeeting[meeting.id] ?? []}
+                  />
+                </div>
               </li>
             ))}
           </ul>
@@ -263,13 +309,24 @@ export default async function SupervisorProjectPage({
             {project.questions.map((question) => (
               <li
                 key={question.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-edge p-4"
+                className="rounded-lg border border-edge p-4"
               >
-                <StatusBadge
-                  label={questionStatusLabel[question.status as QuestionStatus]}
-                  tone={questionStatusTone[question.status as QuestionStatus]}
-                />
-                <span className="text-sm">{question.title}</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <StatusBadge
+                    label={questionStatusLabel[question.status as QuestionStatus]}
+                    tone={questionStatusTone[question.status as QuestionStatus]}
+                  />
+                  <span className="text-sm">{question.title}</span>
+                </div>
+                <div className="mt-3">
+                  <CommentSection
+                    key={`question-${question.id}-${(commentsByQuestion[question.id] ?? []).map((c) => c.id).join("-")}`}
+                    targetType="QUESTION"
+                    targetId={question.id}
+                    currentUserId={session.user.id}
+                    initialComments={commentsByQuestion[question.id] ?? []}
+                  />
+                </div>
               </li>
             ))}
           </ul>

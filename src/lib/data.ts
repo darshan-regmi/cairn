@@ -231,3 +231,19 @@ export function listCommentsForTarget(targetType: CommentTarget, targetId: strin
     orderBy: { createdAt: "asc" },
   });
 }
+
+/**
+ * Comments for many items of one target type, in a single round trip. Pages
+ * that render a list (meetings, questions, evidence, tasks) use this and then
+ * group by targetId instead of issuing one query per item.
+ */
+export function listCommentsForTargets(
+  targetType: CommentTarget,
+  targetIds: string[],
+) {
+  return prisma.comment.findMany({
+    where: { targetType, targetId: { in: targetIds } },
+    include: { author: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+}

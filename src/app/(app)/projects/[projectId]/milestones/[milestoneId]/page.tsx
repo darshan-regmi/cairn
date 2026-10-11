@@ -1,7 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { findMilestoneForUser, listCommentsForTarget } from "@/lib/data";
+import {
+  findMilestoneForUser,
+  listCommentsForTarget,
+  listCommentsForTargets,
+} from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
 import {
   isOverdue,
@@ -10,10 +14,8 @@ import {
 } from "@/lib/milestone-metrics";
 import { KanbanBoard, type KanbanCard } from "@/components/kanban/KanbanBoard";
 import { StatusBadge } from "@/components/StatusBadge";
-import {
-  CommentSection,
-  type CommentItem,
-} from "@/components/comments/CommentSection";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { groupCommentsByTarget, toCommentItems } from "@/lib/comments";
 import { ReviewCard } from "@/components/reviews/ReviewCard";
 import { ReviewFormPanel } from "@/components/reviews/ReviewForm";
 import { EvidenceSection } from "@/components/evidence/EvidenceSection";
@@ -25,20 +27,6 @@ import {
   type MilestoneStatus,
   type ReviewVerdict,
 } from "@/lib/status";
-
-type CommentRows = Awaited<ReturnType<typeof listCommentsForTarget>>;
-
-function toCommentItems(rows: CommentRows): CommentItem[] {
-  return rows.map((comment) => ({
-    id: comment.id,
-    body: comment.body,
-    createdAt: comment.createdAt.toISOString(),
-    editedAt: comment.editedAt ? comment.editedAt.toISOString() : null,
-    authorId: comment.authorId,
-    authorName: comment.author.name,
-    authorEmail: comment.author.email,
-  }));
-}
 
 function daysLeftLabel(days: number): string {
   if (days === 0) return "ends today";
@@ -66,6 +54,26 @@ export default async function MilestoneKanbanPage({
 
   const comments = toCommentItems(
     await listCommentsForTarget("MILESTONE", milestone.id),
+  );
+
+  const reviewComments = toCommentItems(
+    milestone.review
+      ? await listCommentsForTarget("REVIEW", milestone.review.id)
+      : [],
+  );
+
+  const evidenceComments = groupCommentsByTarget(
+    await listCommentsForTargets(
+      "EVIDENCE",
+      milestone.evidence.map((item) => item.id),
+    ),
+  );
+
+  const taskComments = groupCommentsByTarget(
+    await listCommentsForTargets(
+      "TASK",
+      milestone.tasks.map((task) => task.id),
+    ),
   );
 
   const today = new Date();
@@ -149,9 +157,16 @@ export default async function MilestoneKanbanPage({
         key={boardKey}
         milestoneId={milestone.id}
         initialCards={cards}
+        comments={taskComments}
+        currentUserId={session.user.id}
       />
 
-      <EvidenceSection milestoneId={milestone.id} items={evidence} />
+      <EvidenceSection
+        milestoneId={milestone.id}
+        items={evidence}
+        comments={evidenceComments}
+        currentUserId={session.user.id}
+      />
 
       <section className="mt-10 max-w-3xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -201,6 +216,20 @@ export default async function MilestoneKanbanPage({
             }
           />
         </div>
+
+        {milestone.review && (
+          <div className="mt-4">
+            <CommentSection
+              key={`review-${milestone.review.id}-${reviewComments
+                .map((c) => c.id)
+                .join("-")}`}
+              targetType="REVIEW"
+              targetId={milestone.review.id}
+              currentUserId={session.user.id}
+              initialComments={reviewComments}
+            />
+          </div>
+        )}
       </section>
 
       <div className="mt-10 max-w-3xl">

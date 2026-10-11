@@ -37,6 +37,7 @@ import {
   type TaskStatus,
 } from "@/lib/status";
 import { TaskDialog } from "./TaskDialog";
+import type { CommentItem } from "@/components/comments/CommentSection";
 
 export interface KanbanCard {
   id: string;
@@ -101,9 +102,13 @@ function boardCollision(args: Parameters<CollisionDetection>[0]): Collision[] {
 export function KanbanBoard({
   milestoneId,
   initialCards,
+  comments,
+  currentUserId,
 }: {
   milestoneId: string;
   initialCards: KanbanCard[];
+  comments: Record<string, CommentItem[]>;
+  currentUserId: string;
 }) {
   const [cards, setCards] = useState<KanbanCard[]>(initialCards);
   const [activeCard, setActiveCard] = useState<KanbanCard | null>(null);
@@ -233,6 +238,8 @@ export function KanbanBoard({
           milestoneId={milestoneId}
           dialog={dialog}
           onClose={() => setDialog(null)}
+          comments={comments}
+          currentUserId={currentUserId}
         />
       )}
     </div>

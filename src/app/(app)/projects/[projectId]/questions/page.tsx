@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { findQuestionsForUser } from "@/lib/data";
+import { findQuestionsForUser, listCommentsForTargets } from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
 import { deleteQuestionAction } from "@/actions/questions";
 import { toDateInput } from "@/lib/milestone-metrics";
@@ -22,6 +22,8 @@ import {
   AdoptQuestionForm,
   QuestionStatusControl,
 } from "@/components/questions/QuestionActions";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { groupCommentsByTarget } from "@/lib/comments";
 
 type QuestionsProject = NonNullable<
   Awaited<ReturnType<typeof findQuestionsForUser>>
@@ -60,6 +62,13 @@ export default async function QuestionsPage({
     id: milestone.id,
     name: milestone.name,
   }));
+
+  const commentsByQuestion = groupCommentsByTarget(
+    await listCommentsForTargets(
+      "QUESTION",
+      project.questions.map((question) => question.id),
+    ),
+  );
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl px-4 py-12">
@@ -211,6 +220,18 @@ export default async function QuestionsPage({
                   />
                 </div>
               )}
+
+              <div className="mt-4">
+                <CommentSection
+                  key={`question-${question.id}-${(commentsByQuestion[question.id] ?? [])
+                    .map((comment) => comment.id)
+                    .join("-")}`}
+                  targetType="QUESTION"
+                  targetId={question.id}
+                  currentUserId={session.user.id}
+                  initialComments={commentsByQuestion[question.id] ?? []}
+                />
+              </div>
             </li>
           ))}
         </ol>

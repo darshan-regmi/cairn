@@ -8,6 +8,10 @@ import {
 } from "@/actions/evidence";
 import { EvidenceCard } from "@/components/evidence/EvidenceCard";
 import {
+  CommentSection,
+  type CommentItem,
+} from "@/components/comments/CommentSection";
+import {
   EVIDENCE_TYPES,
   evidenceTypeLabel,
   type EvidenceType,
@@ -191,9 +195,13 @@ function EvidenceFields({
 export function EvidenceSection({
   milestoneId,
   items,
+  comments,
+  currentUserId,
 }: {
   milestoneId: string;
   items: EvidenceItemData[];
+  comments: Record<string, CommentItem[]>;
+  currentUserId: string;
 }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -283,6 +291,17 @@ export function EvidenceSection({
                   }
                 />
               )}
+              <div className="mt-2">
+                <CommentSection
+                  key={`evidence-${item.id}-${(comments[item.id] ?? [])
+                    .map((comment) => comment.id)
+                    .join("-")}`}
+                  targetType="EVIDENCE"
+                  targetId={item.id}
+                  currentUserId={currentUserId}
+                  initialComments={comments[item.id] ?? []}
+                />
+              </div>
             </li>
           ))}
         </ul>

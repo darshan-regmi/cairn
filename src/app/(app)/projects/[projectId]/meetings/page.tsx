@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { findMeetingsForUser } from "@/lib/data";
+import { findMeetingsForUser, listCommentsForTargets } from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
 import { deleteMeetingAction, deleteMeetingTaskAction } from "@/actions/meetings";
 import { toDateInput } from "@/lib/milestone-metrics";
@@ -15,6 +15,8 @@ import {
   AddActionForm,
   ConvertActionForm,
 } from "@/components/meetings/MeetingActions";
+import { CommentSection } from "@/components/comments/CommentSection";
+import { groupCommentsByTarget } from "@/lib/comments";
 
 type MeetingsProject = NonNullable<
   Awaited<ReturnType<typeof findMeetingsForUser>>
@@ -55,6 +57,13 @@ export default async function MeetingsPage({
     id: milestone.id,
     name: milestone.name,
   }));
+
+  const commentsByMeeting = groupCommentsByTarget(
+    await listCommentsForTargets(
+      "MEETING",
+      project.meetings.map((meeting) => meeting.id),
+    ),
+  );
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-3xl px-4 py-12">
@@ -201,6 +210,18 @@ export default async function MeetingsPage({
                   </ul>
                 )}
                 <AddActionForm meetingId={meeting.id} />
+              </div>
+
+              <div className="mt-4">
+                <CommentSection
+                  key={`meeting-${meeting.id}-${(commentsByMeeting[meeting.id] ?? [])
+                    .map((comment) => comment.id)
+                    .join("-")}`}
+                  targetType="MEETING"
+                  targetId={meeting.id}
+                  currentUserId={session.user.id}
+                  initialComments={commentsByMeeting[meeting.id] ?? []}
+                />
               </div>
             </li>
           ))}

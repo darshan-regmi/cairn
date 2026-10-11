@@ -108,7 +108,9 @@ src/
     timeline/           # add-milestone form, milestone status control
     kanban/             # KanbanBoard (dnd-kit), TaskDialog
     invites/            # invite-supervisor + accept-invite forms
-    comments/           # CommentSection (thread with edit/delete)
+    comments/           # CommentSection (thread with edit/delete), reused on
+                        #   milestones, tasks, meetings, questions, reviews,
+                        #   evidence
     meetings/           # meeting form + convert/add action controls
     questions/          # question form + status/adopt controls
     reviews/            # review card + record/edit panel
@@ -129,6 +131,7 @@ src/
     csv-import.ts       # pure GanttProject CSV → project plan parser
     password.ts         # scrypt hashing (node:crypto, no native deps)
     data.ts             # membership-scoped read queries
+    comments.ts         # comment row → CommentItem mapping / per-target grouping
     milestone-metrics.ts# pure progress / overdue / days-left helpers
     status.ts           # shared status labels and colours
   types/next-auth.d.ts  # session user.id typing
@@ -220,5 +223,10 @@ Importing the same title + dates twice for the same user is refused.
   demo, screenshot, test result, benchmark, commit/PR or supervisor feedback,
   each with a date, an optional URL and an optional note on what it proves.
   Owners add, edit and delete on the board; supervisors see the list read-only.
+- **Comments on every target (done):** any project member can discuss a
+  milestone, task, meeting, open question, review or piece of evidence. Authors
+  edit or delete their own comments; owners see the threads on the board, the
+  meetings page and the questions page, and supervisors see them and reply from
+  `/supervisor/[projectId]`.
 - **Still to build:** export, plus the v1.5 (report helper, all-tasks view,
   settings, notifications) and v2 (self-hosting polish) items.

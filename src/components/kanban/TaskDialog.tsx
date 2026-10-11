@@ -17,6 +17,10 @@ import {
   type TaskStatus,
 } from "@/lib/status";
 import type { DialogState } from "./KanbanBoard";
+import {
+  CommentSection,
+  type CommentItem,
+} from "@/components/comments/CommentSection";
 
 const initialState: TaskActionState = { success: false };
 
@@ -27,10 +31,14 @@ export function TaskDialog({
   milestoneId,
   dialog,
   onClose,
+  comments,
+  currentUserId,
 }: {
   milestoneId: string;
   dialog: NonNullable<DialogState>;
   onClose: () => void;
+  comments: Record<string, CommentItem[]>;
+  currentUserId: string;
 }) {
   const editing = dialog.mode === "edit";
   const card = editing ? dialog.card : null;
@@ -92,7 +100,7 @@ export function TaskDialog({
     >
       <div
         ref={panelRef}
-        className="w-full max-w-md rounded-lg border border-edge bg-surface p-5 shadow-lift"
+        className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-lg border border-edge bg-surface p-5 shadow-lift"
       >
         <h2 className="text-lg font-semibold tracking-tight">
           {editing ? "Edit task" : "Add task"}
@@ -246,6 +254,17 @@ export function TaskDialog({
             </div>
           </div>
         </form>
+
+        {card && (
+          <div className="mt-5">
+            <CommentSection
+              targetType="TASK"
+              targetId={card.id}
+              currentUserId={currentUserId}
+              initialComments={comments[card.id] ?? []}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

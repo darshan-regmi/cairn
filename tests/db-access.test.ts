@@ -11,6 +11,7 @@ import {
   findSupervisorProject,
   findTaskForUser,
   listCommentsForTarget,
+  listCommentsForTargets,
   listOwnedProjectsForUser,
   listProjectsForUser,
   listSupervisedProjectsForUser,
@@ -418,6 +419,52 @@ describeDb("DB-backed authorization", () => {
       const milestone = view?.milestones.find((m) => m.id === milestoneId);
       expect(milestone?.evidence).toHaveLength(2);
       expect(milestone?.evidence[0]?.title).toContain("upload demo");
+    });
+  });
+
+  describe("comments for many targets", () => {
+    it("returns comments for the given targets, filtered by type", async () => {
+      await prisma.comment.createMany({
+        data: [
+          {
+            projectId,
+            targetType: "MILESTONE",
+            targetId: milestoneId,
+            authorId: ownerId,
+            body: "On the milestone",
+          },
+          {
+            projectId,
+            targetType: "TASK",
+            targetId: taskId,
+            authorId: supervisorId,
+            body: "On the task",
+          },
+          {
+            projectId,
+            targetType: "TASK",
+            targetId: taskId,
+            authorId: ownerId,
+            body: "Also on the task",
+          },
+        ],
+      });
+
+      const taskComments = await listCommentsForTargets("TASK", [taskId]);
+      expect(taskComments).toHaveLength(2);
+      expect(taskComments.every((c) => c.targetId === taskId)).toBe(true);
+      expect(taskComments[0]?.author.email).toContain("supervisor_");
+
+      const milestoneComments = await listCommentsForTargets("MILESTONE", [
+        milestoneId,
+      ]);
+      expect(milestoneComments.map((c) => c.body)).toContain("On the milestone");
+      // A query for one target type must not leak another's comments.
+      expect(milestoneComments.map((c) => c.body)).not.toContain("On the task");
+    });
+
+    it("returns nothing for an empty target list", async () => {
+      expect(await listCommentsForTargets("EVIDENCE", [])).toEqual([]);
     });
   });
 
