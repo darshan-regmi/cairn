@@ -78,7 +78,10 @@ and three open questions (open, parked, and dropped).
 ```
 src/
   app/                  # App Router pages
+    page.tsx            # public landing page
+    docs/               # public documentation
     (app)/              # protected pages (auth guard + header live here)
+      no-access/        # 403 view for a project you don't belong to
       projects/         # dashboard overview + project grid + create/import
       projects/[projectId]/            # milestone timeline + supervisors + share link
       projects/[projectId]/milestones/[milestoneId]  # kanban board + evidence + review + comments
@@ -86,14 +89,22 @@ src/
       projects/[projectId]/questions/  # open questions + adopt -> task
       supervisor/       # projects you supervise (read-only)
       supervisor/[projectId]/          # read-only review view + comments
-    (auth)/login        # sign-in page
-    (auth)/signup       # create-account page
+    (auth)/login        # sign-in page (forgot-password link lives here)
+    (auth)/signup       # create-account page (student / supervisor choice)
+    (auth)/reset        # request a password reset link
+    (auth)/reset/[token]  # set a new password from a reset link
     (auth)/invite/[token]  # accept a supervisor invitation (public)
     share/[token]       # public, read-only project view (share link)
+    error.tsx           # 500 boundary with a request id
+    global-error.tsx    # root-level 500 boundary
+    not-found.tsx       # 404 page with a way back
     api/auth/[...nextauth]  # Auth.js route handler
   actions/
-    auth.ts             # server action: sign-up
-    projects.ts         # createProject, importProject, createMilestone, updateMilestoneStatus
+    auth.ts             # server action: sign-up (role choice, ALLOW_SIGNUP gate)
+    reset.ts            # request + complete a password reset
+    projects.ts         # createProject, importProject, milestone CRUD + move/reschedule/details
+    deliverables.ts     # add/toggle/update/delete milestone deliverables
+    dashboard.ts        # markCommentsRead (supervisor-comment watermark)
     tasks.ts            # saveTask, deleteTask, moveTasks
     invites.ts          # createInvite, acceptInvite, removeSupervisor, revokeInvite
     comments.ts         # createComment, updateComment, deleteComment
@@ -103,9 +114,9 @@ src/
     share.ts            # saveShareLink (create / set expiry), revokeShareLink
     evidence.ts         # createEvidence, updateEvidence, deleteEvidence (owner only)
   components/
-    auth/               # client-side sign-in/sign-up forms
+    auth/               # sign-in / sign-up / password-reset client forms
     projects/           # create-project + CSV import forms
-    timeline/           # add-milestone form, milestone status control
+    timeline/           # add-milestone form, status control, move/reschedule controls
     kanban/             # KanbanBoard (dnd-kit), TaskDialog
     invites/            # invite-supervisor + accept-invite forms
     comments/           # CommentSection (thread with edit/delete), reused on
@@ -115,19 +126,25 @@ src/
     questions/          # question form + status/adopt controls
     reviews/            # review card + record/edit panel
     evidence/           # evidence card + add/edit/delete section
+    deliverables/       # milestone deliverables checklist
+    milestone/          # milestone scope + definition of done panel
     share/              # share-link panel (create, copy, expire, revoke)
     ProgressBar.tsx     # shared progress bar
     StatusBadge.tsx     # shared status badge
   lib/
     access.ts           # membership filters + per-project role lookup
     auth.ts             # NextAuth config (Credentials + JWT)
+    config.ts           # environment feature flags (ALLOW_SIGNUP)
     prisma.ts           # Prisma client singleton
     validation.ts       # Zod schemas
     invites.ts          # pure invite token / hashing / expiry helpers
+    reset.ts            # pure password-reset token / hashing / expiry helpers
     share.ts            # pure share token generator / active-window check
     navigation.ts       # safe same-site callbackUrl helper
     meetings.ts         # pure agreed-action textarea parser
-    dashboard.ts        # pure dashboard aggregation (progress / overdue / upcoming)
+    dashboard.ts        # pure dashboard aggregation (progress / overdue / due-soon /
+                        #   meeting prep / open questions / unread comments)
+    supervisor.ts       # pure supervised-project summary (on-track / behind + next meeting)
     csv-import.ts       # pure GanttProject CSV → project plan parser
     password.ts         # scrypt hashing (node:crypto, no native deps)
     data.ts             # membership-scoped read queries
@@ -211,10 +228,11 @@ Importing the same title + dates twice for the same user is refused.
   / promised notes. Owners record, edit and delete it on the board; the verdict
   shows on the project timeline, and supervisors read the review (their
   feedback still lives in comments).
-- **Dashboard (done):** the landing page is a cross-project overview — totals
-  for projects, milestones and tasks done, a **Needs attention** list of
-  overdue tasks (how late, and where), and a **Coming up** list of the next
-  milestones with their progress, above your project cards.
+- **Dashboard (done):** the dashboard at `/projects` is a cross-project
+  overview — totals for projects, milestones and tasks done, plus lists of
+  overdue and blocked tasks, work due this week, milestones coming up, prep for
+  your latest meeting, questions still waiting on a decision, and new comments
+  from your supervisor (clearable in one click), above your project cards.
 - **Public share link (done):** the owner can mint a read-only link to a
   project. Anyone holding it can view the milestones, their tasks and the
   review verdicts with no account, and the owner can set an optional expiry or
@@ -228,5 +246,25 @@ Importing the same title + dates twice for the same user is refused.
   edit or delete their own comments; owners see the threads on the board, the
   meetings page and the questions page, and supervisors see them and reply from
   `/supervisor/[projectId]`.
-- **Still to build:** export, plus the v1.5 (report helper, all-tasks view,
-  settings, notifications) and v2 (self-hosting polish) items.
+- **Milestone scope, definition of done and deliverables (done):** a milestone
+  can carry a scope, a definition of done and a checklist of deliverables (each
+  with an optional link) that owners tick off on the board; supervisors and
+  share links see them read-only.
+- **Timeline reorder and reschedule (done):** milestones can be moved up or down
+  and given new dates straight from the project timeline, using a two-pass
+  transaction that keeps the per-project order unique.
+- **Every view reads the whole plan (done):** share links and supervisor views
+  include meetings, supervised projects are summarised on the supervisor home
+  with an on-track / behind badge and the next meeting date, and the question
+  board groups questions by status.
+- **System pages (done):** a 404 that leads back to the dashboard, a 500 page
+  that shows the request id, and a distinct no-access page when you open a
+  project you do not belong to.
+- **Self-service accounts (done):** sign-up asks whether you are a student or a
+  supervisor and can be closed with `ALLOW_SIGNUP=false`; the login page links
+  to password reset. Reset links are single-use, hashed at rest, expire after an
+  hour, and need no mail server (the link is shown to copy).
+- **Landing and docs (done):** a public landing page at `/` and a `/docs` guide
+  covering the whole workflow and self-hosting configuration.
+- **Still to build:** report helper, all-tasks view, settings, notifications, and
+  the v2 self-hosting polish items.
