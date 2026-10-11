@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ownerWhere } from "@/lib/access";
 import {
   createMilestoneSchema,
   createProjectSchema,
@@ -37,9 +38,9 @@ export async function createProjectAction(
   const project = await prisma.project.create({
     data: {
       title: parsed.data.title,
-      ownerId: session.user.id,
       startDate: new Date(`${parsed.data.startDate}T00:00:00`),
       endDate: new Date(`${parsed.data.endDate}T00:00:00`),
+      members: { create: { userId: session.user.id, role: "OWNER" } },
     },
   });
 
@@ -79,7 +80,7 @@ export async function importProjectAction(
   // whole timeline, so refuse exact title + date matches for this user.
   const duplicate = await prisma.project.findFirst({
     where: {
-      ownerId: session.user.id,
+      ...ownerWhere(session.user.id),
       title: plan.title,
       startDate: new Date(`${plan.startDate}T00:00:00`),
       endDate: new Date(`${plan.endDate}T00:00:00`),
@@ -98,9 +99,9 @@ export async function importProjectAction(
       data: {
         title: plan.title,
         goal: plan.goal ?? null,
-        ownerId: session.user.id,
         startDate: new Date(`${plan.startDate}T00:00:00`),
         endDate: new Date(`${plan.endDate}T00:00:00`),
+        members: { create: { userId: session.user.id, role: "OWNER" } },
       },
     });
     for (const [milestoneIndex, milestone] of plan.milestones.entries()) {
@@ -159,7 +160,7 @@ export async function createMilestoneAction(
   }
 
   const owned = await prisma.project.findFirst({
-    where: { id: projectId.data, ownerId: session.user.id },
+    where: { id: projectId.data, ...ownerWhere(session.user.id) },
   });
   if (!owned) return { success: false, error: "Project not found." };
 
@@ -198,7 +199,7 @@ export async function updateMilestoneStatusAction(formData: FormData) {
   const milestone = await prisma.milestone.findFirst({
     where: {
       id: parsed.data.milestoneId,
-      project: { ownerId: session.user.id },
+      project: ownerWhere(session.user.id),
     },
   });
   if (!milestone) return;

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ownerWhere } from "@/lib/access";
 import {
   deleteTaskSchema,
   moveTasksSchema,
@@ -44,7 +45,7 @@ export async function saveTaskAction(
   const milestone = await prisma.milestone.findFirst({
     where: {
       id: parsed.data.milestoneId,
-      project: { ownerId: session.user.id },
+      project: ownerWhere(session.user.id),
     },
     select: { id: true, projectId: true },
   });
@@ -92,7 +93,10 @@ export async function deleteTaskAction(
   if (!parsed.success) return { success: false, error: "Invalid input." };
 
   const task = await prisma.task.findFirst({
-    where: { id: parsed.data.taskId, milestone: { project: { ownerId: session.user.id } } },
+    where: {
+      id: parsed.data.taskId,
+      milestone: { project: ownerWhere(session.user.id) },
+    },
     include: { milestone: true },
   });
   if (!task) return { success: false, error: "Task not found." };
@@ -117,7 +121,7 @@ export async function moveTasksAction(input: unknown) {
   const milestone = await prisma.milestone.findFirst({
     where: {
       id: parsed.data.milestoneId,
-      project: { ownerId: session.user.id },
+      project: ownerWhere(session.user.id),
     },
     select: { id: true, projectId: true },
   });

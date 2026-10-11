@@ -35,10 +35,10 @@ async function main() {
   const project = await prisma.project.create({
     data: {
       title: DEMO_TITLE,
-      ownerId: user.id,
       startDate: dayOffset(-21),
       endDate: dayOffset(161),
       shareToken: randomBytes(16).toString("hex"),
+      members: { create: { userId: user.id, role: "OWNER" } },
       milestones: {
         create: [
           {
@@ -120,10 +120,12 @@ async function main() {
         "Project shell repo is live with CI; Docker Postgres is working locally.",
       problems:
         "No clear answer yet on how much chunk metadata to persist per chunk.",
-      nextTasks: [
-        "Basic project board wireframes",
-        "Propose gesture navigation for the feed",
-      ],
+      actionItems: {
+        create: [
+          { text: "Basic project board wireframes" },
+          { text: "Propose gesture navigation for the feed" },
+        ],
+      },
     },
   });
 
@@ -138,10 +140,12 @@ async function main() {
       achievements: "",
       problems:
         "Chunk retry currently drops checksum info; unclear how much to store per chunk.",
-      nextTasks: [
-        "Check upload speed on 5G",
-        "Rough slide outline for the M1 demo",
-      ],
+      actionItems: {
+        create: [
+          { text: "Check upload speed on 5G" },
+          { text: "Rough slide outline for the M1 demo" },
+        ],
+      },
     },
   });
 
@@ -246,6 +250,18 @@ async function main() {
         // The "Basic project board wireframes" task was converted from meeting 1.
         sourceMeetingId: title === "Basic project board wireframes" ? meeting1.id : null,
       },
+    });
+  }
+
+  // The wireframes action line was converted into a card, so link the two.
+  const wireframesTask = await prisma.task.findFirst({
+    where: { milestoneId: m1.id, title: "Basic project board wireframes" },
+    select: { id: true },
+  });
+  if (wireframesTask) {
+    await prisma.meetingTask.updateMany({
+      where: { meetingId: meeting1.id, text: "Basic project board wireframes" },
+      data: { taskId: wireframesTask.id },
     });
   }
 

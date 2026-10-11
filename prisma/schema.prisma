@@ -58,51 +58,100 @@ enum EvidenceType {
   SUPERVISOR_FEEDBACK
 }
 
+// The role a person chooses at sign up. It describes who they are in general
+// (a student running a project, or a supervisor reviewing one); per-project
+// rights live on ProjectMember.role.
+enum UserRole {
+  STUDENT
+  SUPERVISOR
+}
+
+// Per-project rights. The owner has full control; a supervisor can read and
+// comment only.
+enum ProjectRole {
+  OWNER
+  SUPERVISOR
+}
+
+// What a comment is attached to. targetId points at the row of that table.
+enum CommentTarget {
+  MILESTONE
+  TASK
+  MEETING
+  REVIEW
+  QUESTION
+  EVIDENCE
+}
+
 // ---------- Models ----------
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  name         String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  projects     Project[]
+  id               String          @id @default(cuid())
+  email            String          @unique
+  passwordHash     String
+  name             String?
+  role             UserRole        @default(STUDENT)
+  avatarUrl        String?
+  timeZone         String?
+  emailVerifiedAt  DateTime?
+  failedLoginCount Int             @default(0)
+  lockedUntil      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  memberships      ProjectMember[]
+  comments         Comment[]
 }
 
 model Project {
-  id         String      @id @default(cuid())
-  title      String
-  goal       String?
-  ownerId    String
-  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  startDate  DateTime
-  endDate    DateTime
-  shareToken String?     @unique
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  milestones Milestone[]
-  meetings   Meeting[]
-  questions  Question[]
+  id             String          @id @default(cuid())
+  title          String
+  goal           String?
+  startDate      DateTime
+  endDate        DateTime
+  shareToken     String?         @unique
+  shareExpiresAt DateTime?
+  archivedAt     DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  members        ProjectMember[]
+  milestones     Milestone[]
+  meetings       Meeting[]
+  questions      Question[]
+  comments       Comment[]
+  invites        Invite[]
+}
 
-  @@index([ownerId])
+// Access is granted per project through a membership row. The owner has full
+// control; a supervisor can read and comment. Every query is scoped through
+// this table, never through a single owner column on Project.
+model ProjectMember {
+  id        String      @id @default(cuid())
+  projectId String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ProjectRole
+  createdAt DateTime    @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
 }
 
 model Milestone {
-  id           String           @id @default(cuid())
+  id           String          @id @default(cuid())
   projectId    String
-  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   name         String
-  status       MilestoneStatus  @default(PLANNED)
+  status       MilestoneStatus @default(PLANNED)
   plannedStart DateTime
   plannedEnd   DateTime
   actualStart  DateTime?
   actualEnd    DateTime?
   commitRange  String?
   goal         String?
-  order        Int              @default(0)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  order        Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
   tasks        Task[]
   meetings     Meeting[]
   questions    Question[]
@@ -114,82 +163,96 @@ model Milestone {
 }
 
 model Task {
-  id               String       @id @default(cuid())
+  id               String        @id @default(cuid())
   milestoneId      String
-  milestone        Milestone    @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  milestone        Milestone     @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
   title            String
-  status           TaskStatus   @default(TODO)
+  status           TaskStatus    @default(TODO)
   due              DateTime?
-  priority         Priority     @default(MEDIUM)
-  source           TaskSource   @default(PLANNED)
+  priority         Priority      @default(MEDIUM)
+  source           TaskSource    @default(PLANNED)
   commit           String?
   notes            String?
-  order            Int          @default(0)
+  order            Int           @default(0)
   sourceMeetingId  String?
-  sourceMeeting    Meeting?     @relation(fields: [sourceMeetingId], references: [id], onDelete: SetNull)
-  sourceQuestionId String?   @unique
-  sourceQuestion   Question? @relation(fields: [sourceQuestionId], references: [id], onDelete: SetNull)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  sourceMeeting    Meeting?      @relation(fields: [sourceMeetingId], references: [id], onDelete: SetNull)
+  sourceQuestionId String?       @unique
+  sourceQuestion   Question?     @relation(fields: [sourceQuestionId], references: [id], onDelete: SetNull)
+  meetingTasks     MeetingTask[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
   @@index([milestoneId, status, order])
 }
 
 model Meeting {
-  id              String    @id @default(cuid())
+  id              String        @id @default(cuid())
   projectId       String
-  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project         Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   milestoneId     String?
-  milestone       Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  milestone       Milestone?    @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
   date            DateTime
   nextMeetingDate DateTime?
   itemsDiscussed  String?
   achievements    String?
   problems        String?
-  // One line per agreed action; each line can be converted into a Task
-  // that remembers this meeting via Task.sourceMeetingId.
-  nextTasks       String[]   @default([])
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  // One line per agreed action. Converting a line sets MeetingTask.taskId and
+  // creates a Task that remembers this meeting via Task.sourceMeetingId.
+  actionItems     MeetingTask[]
   tasks           Task[]
 
   @@index([projectId, date])
 }
 
+// A single agreed action from a meeting. taskId is set when the line has been
+// turned into a kanban card.
+model MeetingTask {
+  id        String   @id @default(cuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  text      String
+  taskId    String?  @unique
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([meetingId])
+}
+
 model Question {
-  id           String         @id @default(cuid())
-  projectId    String
-  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  milestoneId  String?
-  milestone    Milestone?     @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
-  title        String
-  status       QuestionStatus @default(OPEN)
-  raisedAt     DateTime       @default(now())
-  decidedAt    DateTime?
-  context      String?
-  ifWeDoIt     String?
-  whatItCosts  String?
-  ifWeDont     String?
-  decision     String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  task         Task?
+  id          String         @id @default(cuid())
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestoneId String?
+  milestone   Milestone?     @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  title       String
+  status      QuestionStatus @default(OPEN)
+  raisedAt    DateTime       @default(now())
+  decidedAt   DateTime?
+  context     String?
+  ifWeDoIt    String?
+  whatItCosts String?
+  ifWeDont    String?
+  decision    String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  task        Task?
 
   @@index([projectId, status])
 }
 
 model Review {
-  id                 String       @id @default(cuid())
-  milestoneId        String       @unique
-  milestone          Milestone    @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  date               DateTime
-  verdict            ReviewVerdict
-  askedFor           String?
-  demonstrated       String?
-  promised           String?
-  supervisorFeedback String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  id           String        @id @default(cuid())
+  milestoneId  String        @unique
+  milestone    Milestone     @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  date         DateTime
+  verdict      ReviewVerdict
+  askedFor     String?
+  demonstrated String?
+  promised     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Evidence {
@@ -205,4 +268,37 @@ model Evidence {
   updatedAt    DateTime     @updatedAt
 
   @@index([milestoneId])
+}
+
+// A supervisor comment on one item, or the owner's reply. Feedback lives here
+// rather than in a column so the student's own text stays the student's.
+model Comment {
+  id         String        @id @default(cuid())
+  projectId  String
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  targetType CommentTarget
+  targetId   String
+  body       String
+  createdAt  DateTime      @default(now())
+  editedAt   DateTime?
+
+  @@index([projectId, targetType, targetId])
+}
+
+// An invitation for a supervisor to join one project. Accepting creates a
+// ProjectMember with role SUPERVISOR.
+model Invite {
+  id         String    @id @default(cuid())
+  projectId  String
+  project    Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  email      String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([projectId])
+  @@index([email])
 }

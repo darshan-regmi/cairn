@@ -1,5 +1,6 @@
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { ownerWhere } from "@/lib/access";
 import {
   findMilestoneForUser,
   findProjectForUser,
@@ -17,10 +18,14 @@ const describeDb = describe.skipIf(!process.env.DATABASE_URL);
 
 describeDb("DB-backed authorization", () => {
   let ownerId = "";
+  let supervisorId = "";
   let intruderId = "";
   let projectId = "";
   let milestoneId = "";
   let taskId = "";
+  // Access cascades from ProjectMember now, not from an owner column, so we
+  // collect the projects we create and remove them explicitly in afterAll.
+  const createdProjectIds: string[] = [];
 
   beforeAll(async () => {
     await prisma.$queryRaw`SELECT 1`;
@@ -33,6 +38,14 @@ describeDb("DB-backed authorization", () => {
         name: "Owner",
       },
     });
+    const supervisor = await prisma.user.create({
+      data: {
+        email: `supervisor_${tag}@fyp-planner.test`,
+        passwordHash: "scrypt:0:test-only",
+        name: "Supervisor",
+        role: "SUPERVISOR",
+      },
+    });
     const intruder = await prisma.user.create({
       data: {
         email: `intruder_${tag}@fyp-planner.test`,
@@ -41,17 +54,24 @@ describeDb("DB-backed authorization", () => {
       },
     });
     ownerId = owner.id;
+    supervisorId = supervisor.id;
     intruderId = intruder.id;
 
     const project = await prisma.project.create({
       data: {
         title: `Authorization test ${tag}`,
-        ownerId: owner.id,
         startDate: new Date(2026, 0, 1),
         endDate: new Date(2026, 11, 31),
+        members: {
+          create: [
+            { userId: owner.id, role: "OWNER" },
+            { userId: supervisor.id, role: "SUPERVISOR" },
+          ],
+        },
       },
     });
     projectId = project.id;
+    createdProjectIds.push(project.id);
 
     const milestone = await prisma.milestone.create({
       data: {
@@ -77,44 +97,56 @@ describeDb("DB-backed authorization", () => {
   });
 
   afterAll(async () => {
-    // Deleting the owner cascades project -> milestone -> task.
-    await prisma.user.deleteMany({ where: { id: { in: [ownerId, intruderId] } } });
+    await prisma.project.deleteMany({ where: { id: { in: createdProjectIds } } });
+    await prisma.user.deleteMany({
+      where: { id: { in: [ownerId, supervisorId, intruderId] } },
+    });
   });
 
-  describe("owner-scoped reads", () => {
-    it("shows the project to its owner but returns nothing to an intruder", async () => {
+  describe("membership-scoped reads", () => {
+    it("shows the project to its owner and to an invited supervisor", async () => {
       const ownerView = await findProjectForUser(projectId, ownerId);
       expect(ownerView).not.toBeNull();
       expect(ownerView?.title).toContain("Authorization test");
 
-      const intruderView = await findProjectForUser(projectId, intruderId);
-      expect(intruderView).toBeNull();
+      const supervisorView = await findProjectForUser(projectId, supervisorId);
+      expect(supervisorView).not.toBeNull();
+      expect(supervisorView?.id).toBe(projectId);
     });
 
-    it("scopes the milestone through the project owner", async () => {
+    it("returns nothing to someone with no membership", async () => {
+      expect(await findProjectForUser(projectId, intruderId)).toBeNull();
+    });
+
+    it("scopes the milestone through project membership", async () => {
       const ownerView = await findMilestoneForUser(milestoneId, ownerId);
       expect(ownerView).not.toBeNull();
-      expect(ownerView?.project.ownerId).toBe(ownerId);
+      expect(ownerView?.project.id).toBe(projectId);
 
-      const intruderView = await findMilestoneForUser(milestoneId, intruderId);
-      expect(intruderView).toBeNull();
+      expect(
+        await findMilestoneForUser(milestoneId, supervisorId),
+      ).not.toBeNull();
+      expect(await findMilestoneForUser(milestoneId, intruderId)).toBeNull();
     });
 
-    it("scopes a task through milestone -> project -> owner", async () => {
+    it("scopes a task through milestone -> project membership", async () => {
       const ownerView = await findTaskForUser(taskId, ownerId);
       expect(ownerView).not.toBeNull();
       expect(ownerView?.title).toBe("Do the thing");
 
-      const intruderView = await findTaskForUser(taskId, intruderId);
-      expect(intruderView).toBeNull();
+      expect(await findTaskForUser(taskId, supervisorId)).not.toBeNull();
+      expect(await findTaskForUser(taskId, intruderId)).toBeNull();
     });
 
-    it("never leaks another user's projects into the list query", async () => {
+    it("lists the project for members but never for a non-member", async () => {
       const intruderList = await listProjectsForUser(intruderId);
       expect(intruderList.some((p) => p.id === projectId)).toBe(false);
 
       const ownerList = await listProjectsForUser(ownerId);
       expect(ownerList.some((p) => p.id === projectId)).toBe(true);
+
+      const supervisorList = await listProjectsForUser(supervisorId);
+      expect(supervisorList.some((p) => p.id === projectId)).toBe(true);
     });
 
     it("returns null for ids that do not exist at all", async () => {
@@ -125,7 +157,21 @@ describeDb("DB-backed authorization", () => {
     });
   });
 
-  describe("imported plans stay owner-scoped", () => {
+  describe("owner-only writes", () => {
+    it("matches the project for the owner but not for a supervisor", async () => {
+      const forOwner = await prisma.project.findFirst({
+        where: { id: projectId, ...ownerWhere(ownerId) },
+      });
+      expect(forOwner).not.toBeNull();
+
+      const forSupervisor = await prisma.project.findFirst({
+        where: { id: projectId, ...ownerWhere(supervisorId) },
+      });
+      expect(forSupervisor).toBeNull();
+    });
+  });
+
+  describe("imported plans stay membership-scoped", () => {
     // Mirrors the shape importProjectAction writes: a project with a goal,
     // milestones with goals/order and tasks with notes and due dates.
     let importedProjectId = "";
@@ -138,9 +184,9 @@ describeDb("DB-backed authorization", () => {
         data: {
           title: `Imported plan ${tag}`,
           goal: "Plan imported from a CSV",
-          ownerId,
           startDate: new Date(2026, 0, 1),
           endDate: new Date(2026, 11, 31),
+          members: { create: { userId: ownerId, role: "OWNER" } },
         },
       });
       const milestone = await prisma.milestone.create({
@@ -167,6 +213,7 @@ describeDb("DB-backed authorization", () => {
       importedProjectId = project.id;
       importedMilestoneId = milestone.id;
       importedTaskId = task.id;
+      createdProjectIds.push(project.id);
     });
 
     it("hides an imported project from other users", async () => {
