@@ -6,6 +6,7 @@ import {
   findMilestoneForUser,
   findProjectForUser,
   findQuestionsForUser,
+  findDashboardForUser,
   findSupervisorProject,
   findTaskForUser,
   listCommentsForTarget,
@@ -372,6 +373,21 @@ describeDb("DB-backed authorization", () => {
 
     it("hides the milestone and its review from a non-member", async () => {
       expect(await findMilestoneForUser(milestoneId, intruderId)).toBeNull();
+    });
+  });
+
+  describe("dashboard overview", () => {
+    it("returns the owner's projects with their milestones and tasks", async () => {
+      const rows = await findDashboardForUser(ownerId);
+      const project = rows.find((row) => row.id === projectId);
+      expect(project?.milestones[0]?.tasks.some((t) => t.id === taskId)).toBe(
+        true,
+      );
+    });
+
+    it("returns nothing for a supervisor or a non-member", async () => {
+      expect(await findDashboardForUser(supervisorId)).toHaveLength(0);
+      expect(await findDashboardForUser(intruderId)).toHaveLength(0);
     });
   });
 

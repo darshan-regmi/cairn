@@ -79,6 +79,13 @@ export const priorityClass: Record<Priority, string> = {
   LOW: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
 };
 
+/** Same mapping as priorityClass, for use with the shared StatusBadge. */
+export const priorityTone: Record<Priority, StatusTone> = {
+  HIGH: "red",
+  MEDIUM: "amber",
+  LOW: "zinc",
+};
+
 /** Dot colour per column, used on the kanban column headers. */
 export const columnDotClass: Record<TaskStatus, string> = {
   TODO: "bg-zinc-400",

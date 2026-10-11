@@ -32,7 +32,7 @@ export default async function AppLayout({
                 href="/projects"
                 className="rounded-md px-2 py-1 text-sm text-muted transition-colors hover:bg-accent/10 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                Projects
+                Dashboard
               </Link>
               <Link
                 href="/supervisor"

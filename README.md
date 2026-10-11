@@ -79,7 +79,7 @@ and three open questions (open, parked, and dropped).
 src/
   app/                  # App Router pages
     (app)/              # protected pages (auth guard + header live here)
-      projects/         # project list + create form
+      projects/         # dashboard overview + project grid + create/import
       projects/[projectId]/            # milestone timeline + supervisors
       projects/[projectId]/milestones/[milestoneId]  # kanban board + review + comments
       projects/[projectId]/meetings/   # supervision meeting log + action -> task
@@ -119,6 +119,7 @@ src/
     invites.ts          # pure invite token / hashing / expiry helpers
     navigation.ts       # safe same-site callbackUrl helper
     meetings.ts         # pure agreed-action textarea parser
+    dashboard.ts        # pure dashboard aggregation (progress / overdue / upcoming)
     csv-import.ts       # pure GanttProject CSV → project plan parser
     password.ts         # scrypt hashing (node:crypto, no native deps)
     data.ts             # membership-scoped read queries
@@ -201,4 +202,8 @@ Importing the same title + dates twice for the same user is refused.
   / promised notes. Owners record, edit and delete it on the board; the verdict
   shows on the project timeline, and supervisors read the review (their
   feedback still lives in comments).
-- **Phases 2–4:** dashboard, sharing and export.
+- **Dashboard (done):** the landing page is a cross-project overview — totals
+  for projects, milestones and tasks done, a **Needs attention** list of
+  overdue tasks (how late, and where), and a **Coming up** list of the next
+  milestones with their progress, above your project cards.
+- **Still to build:** sharing (a read-only public project link) and export.

@@ -15,6 +15,34 @@ export function listOwnedProjectsForUser(userId: string) {
   });
 }
 
+/**
+ * Dashboard overview: the user's owned projects with every milestone's task
+ * statuses and due dates, so progress, overdue work and upcoming milestones can
+ * be derived in one round trip. Ownership is enforced through ownerWhere.
+ */
+export function findDashboardForUser(userId: string) {
+  return prisma.project.findMany({
+    where: ownerWhere(userId),
+    orderBy: { createdAt: "desc" },
+    include: {
+      milestones: {
+        orderBy: [{ order: "asc" }, { plannedStart: "asc" }],
+        include: {
+          tasks: {
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              due: true,
+              priority: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
 /** Projects the user supervises (supervisor home list). */
 export function listSupervisedProjectsForUser(userId: string) {
   return prisma.project.findMany({
