@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { findProjectForUser } from "@/lib/data";
 import { listPendingInvitesForProject, listSupervisorsForProject } from "@/lib/data";
@@ -24,6 +25,7 @@ import {
 import { AddMilestoneForm } from "@/components/timeline/AddMilestoneForm";
 import { MilestoneStatusControl } from "@/components/timeline/MilestoneStatusControl";
 import { InviteSupervisorForm } from "@/components/invites/InviteSupervisorForm";
+import { ShareLinkPanel } from "@/components/share/ShareLinkPanel";
 
 function daysLeftLabel(days: number): string {
   if (days === 0) return "Ends today";
@@ -65,6 +67,16 @@ export default async function ProjectTimelinePage({
       current: isCurrent(milestone, today),
     };
   });
+
+  // The public link needs an absolute URL; build it from the request host.
+  const shareToken = project.shareToken;
+  let shareUrl: string | null = null;
+  if (shareToken) {
+    const requestHeaders = await headers();
+    const host = requestHeaders.get("host") ?? "localhost:3000";
+    const proto = requestHeaders.get("x-forwarded-proto") ?? "http";
+    shareUrl = `${proto}://${host}/share/${shareToken}`;
+  }
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-4xl px-4 py-12">
@@ -178,6 +190,21 @@ export default async function ProjectTimelinePage({
           </div>
         )}
       </section>
+
+      <div className="mt-8">
+        <ShareLinkPanel
+          projectId={project.id}
+          token={project.shareToken}
+          url={shareUrl}
+          expiresAt={
+            project.shareExpiresAt ? toDateInput(project.shareExpiresAt) : null
+          }
+          expired={
+            project.shareExpiresAt !== null &&
+            project.shareExpiresAt.getTime() <= today.getTime()
+          }
+        />
+      </div>
 
       {milestones.length === 0 ? (
         <section className="mt-16 rounded-lg border border-dashed border-edge p-10 text-center">

@@ -7,6 +7,7 @@ import {
   findProjectForUser,
   findQuestionsForUser,
   findDashboardForUser,
+  findSharedProject,
   findSupervisorProject,
   findTaskForUser,
   listCommentsForTarget,
@@ -388,6 +389,42 @@ describeDb("DB-backed authorization", () => {
     it("returns nothing for a supervisor or a non-member", async () => {
       expect(await findDashboardForUser(supervisorId)).toHaveLength(0);
       expect(await findDashboardForUser(intruderId)).toHaveLength(0);
+    });
+  });
+
+  describe("public share links", () => {
+    it("opens a project through an active token, with no membership", async () => {
+      const token = "a".repeat(32);
+      await prisma.project.update({
+        where: { id: projectId },
+        data: { shareToken: token, shareExpiresAt: null },
+      });
+
+      const view = await findSharedProject(token);
+      expect(view?.id).toBe(projectId);
+      expect(view?.milestones.length).toBeGreaterThan(0);
+    });
+
+    it("returns null for an expired token", async () => {
+      const token = "b".repeat(32);
+      await prisma.project.update({
+        where: { id: projectId },
+        data: {
+          shareToken: token,
+          shareExpiresAt: new Date(Date.now() - 60_000),
+        },
+      });
+
+      expect(await findSharedProject(token)).toBeNull();
+    });
+
+    it("returns null once the link is revoked", async () => {
+      await prisma.project.update({
+        where: { id: projectId },
+        data: { shareToken: null, shareExpiresAt: null },
+      });
+
+      expect(await findSharedProject("a".repeat(32))).toBeNull();
     });
   });
 

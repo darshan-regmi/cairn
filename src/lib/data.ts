@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { memberWhere, ownerWhere } from "@/lib/access";
+import { isShareActive } from "@/lib/share";
 import type { CommentTarget } from "@/lib/validation";
 
 // All read helpers take the signed-in user id and return only rows from
@@ -75,6 +76,38 @@ export function findProjectForUser(projectId: string, userId: string) {
       },
     },
   });
+}
+
+/**
+ * A project opened through its public share link. This is deliberately the one
+ * read helper not scoped through ProjectMember: the unguessable token is the
+ * capability, and an expired or revoked link returns null. Only the fields the
+ * read-only page draws are selected, so owner-only notes are never exposed.
+ */
+export async function findSharedProject(token: string, now = new Date()) {
+  const project = await prisma.project.findUnique({
+    where: { shareToken: token },
+    include: {
+      milestones: {
+        orderBy: [{ order: "asc" }, { plannedStart: "asc" }],
+        include: {
+          review: { select: { verdict: true } },
+          tasks: {
+            orderBy: [{ status: "asc" }, { order: "asc" }],
+            select: {
+              id: true,
+              title: true,
+              status: true,
+              priority: true,
+              due: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!project || !isShareActive(project, now)) return null;
+  return project;
 }
 
 /** Milestone board: the milestone plus its tasks (for the kanban) and review. */

@@ -281,3 +281,24 @@ export const saveReviewSchema = z.object({
 export const deleteReviewSchema = z.object({
   milestoneId: z.string().min(1),
 });
+
+// ---------- Public share links ----------
+
+// Empty date input means "no expiry". The chosen day is inclusive: storing the
+// end of the day keeps the link live through it.
+export const saveShareLinkSchema = z.object({
+  projectId: z.string().min(1, "Missing project."),
+  expiresAt: dateInput
+    .nullish()
+    .transform((value) => (value ? new Date(`${value}T23:59:59.999`) : null)),
+});
+
+export const revokeShareLinkSchema = z.object({
+  projectId: z.string().min(1, "Missing project."),
+});
+
+// 32 hex characters: the raw token that generateShareToken() produces.
+export const shareTokenSchema = z
+  .string()
+  .trim()
+  .regex(/^[0-9a-f]{32}$/, "This share link is not valid.");

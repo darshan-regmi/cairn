@@ -40,6 +40,14 @@ export const taskStatusLabel: Record<TaskStatus, string> = {
   DONE: "Done",
 };
 
+/** Same mapping as columnDotClass, for use with the shared StatusBadge. */
+export const taskStatusTone: Record<TaskStatus, StatusTone> = {
+  TODO: "zinc",
+  IN_PROGRESS: "amber",
+  BLOCKED: "red",
+  DONE: "emerald",
+};
+
 export const priorityLabel: Record<Priority, string> = {
   HIGH: "High",
   MEDIUM: "Medium",

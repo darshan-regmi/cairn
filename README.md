@@ -2,7 +2,7 @@
 
 A planner for running your whole final year project: milestone timelines, a
 kanban task board, supervisor meeting logs, open questions, milestone reviews,
-and evidence collection for the final report and viva.
+a read-only share link, and evidence collection for the final report and viva.
 
 The app connects the pieces: a task agreed in a meeting can be turned into a
 kanban card in one click, an open question can be adopted as a task, and the
@@ -80,7 +80,7 @@ src/
   app/                  # App Router pages
     (app)/              # protected pages (auth guard + header live here)
       projects/         # dashboard overview + project grid + create/import
-      projects/[projectId]/            # milestone timeline + supervisors
+      projects/[projectId]/            # milestone timeline + supervisors + share link
       projects/[projectId]/milestones/[milestoneId]  # kanban board + review + comments
       projects/[projectId]/meetings/   # supervision meeting log + action -> task
       projects/[projectId]/questions/  # open questions + adopt -> task
@@ -89,6 +89,7 @@ src/
     (auth)/login        # sign-in page
     (auth)/signup       # create-account page
     (auth)/invite/[token]  # accept a supervisor invitation (public)
+    share/[token]       # public, read-only project view (share link)
     api/auth/[...nextauth]  # Auth.js route handler
   actions/
     auth.ts             # server action: sign-up
@@ -99,6 +100,7 @@ src/
     meetings.ts         # createMeeting, updateMeeting, deleteMeeting, addAction, convertActionToTask
     questions.ts        # createQuestion, updateQuestion, deleteQuestion, setStatus, adoptAsTask
     reviews.ts          # saveReview (upsert), deleteReview
+    share.ts            # saveShareLink (create / set expiry), revokeShareLink
   components/
     auth/               # client-side sign-in/sign-up forms
     projects/           # create-project + CSV import forms
@@ -109,6 +111,7 @@ src/
     meetings/           # meeting form + convert/add action controls
     questions/          # question form + status/adopt controls
     reviews/            # review card + record/edit panel
+    share/              # share-link panel (create, copy, expire, revoke)
     ProgressBar.tsx     # shared progress bar
     StatusBadge.tsx     # shared status badge
   lib/
@@ -117,6 +120,7 @@ src/
     prisma.ts           # Prisma client singleton
     validation.ts       # Zod schemas
     invites.ts          # pure invite token / hashing / expiry helpers
+    share.ts            # pure share token generator / active-window check
     navigation.ts       # safe same-site callbackUrl helper
     meetings.ts         # pure agreed-action textarea parser
     dashboard.ts        # pure dashboard aggregation (progress / overdue / upcoming)
@@ -206,4 +210,9 @@ Importing the same title + dates twice for the same user is refused.
   for projects, milestones and tasks done, a **Needs attention** list of
   overdue tasks (how late, and where), and a **Coming up** list of the next
   milestones with their progress, above your project cards.
-- **Still to build:** sharing (a read-only public project link) and export.
+- **Public share link (done):** the owner can mint a read-only link to a
+  project. Anyone holding it can view the milestones, their tasks and the
+  review verdicts with no account, and the owner can set an optional expiry or
+  revoke it in one click. That completes the v1 read story.
+- **Still to build:** export, plus the v1.5 (evidence, report helper, all-tasks
+  view, settings, notifications) and v2 (self-hosting polish) items.
