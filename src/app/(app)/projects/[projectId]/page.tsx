@@ -85,6 +85,17 @@ export default async function ProjectTimelinePage({
           <p className="mt-1 text-sm text-muted">
             {toDateInput(project.startDate)} → {toDateInput(project.endDate)}
           </p>
+          <div className="mt-3">
+            <Link
+              href={`/projects/${project.id}/meetings`}
+              className="inline-flex items-center gap-1 rounded-md border border-edge px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              Meetings
+              {project._count.meetings > 0 && (
+                <span className="text-muted">· {project._count.meetings}</span>
+              )}
+            </Link>
+          </div>
         </div>
         <AddMilestoneForm projectId={project.id} />
       </header>

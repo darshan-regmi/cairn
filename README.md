@@ -82,6 +82,7 @@ src/
       projects/         # project list + create form
       projects/[projectId]/            # milestone timeline + supervisors
       projects/[projectId]/milestones/[milestoneId]  # kanban board + comments
+      projects/[projectId]/meetings/   # supervision meeting log + action -> task
       supervisor/       # projects you supervise (read-only)
       supervisor/[projectId]/          # read-only review view + comments
     (auth)/login        # sign-in page
@@ -94,6 +95,7 @@ src/
     tasks.ts            # saveTask, deleteTask, moveTasks
     invites.ts          # createInvite, acceptInvite, removeSupervisor, revokeInvite
     comments.ts         # createComment, updateComment, deleteComment
+    meetings.ts         # createMeeting, updateMeeting, deleteMeeting, addAction, convertActionToTask
   components/
     auth/               # client-side sign-in/sign-up forms
     projects/           # create-project + CSV import forms
@@ -101,6 +103,7 @@ src/
     kanban/             # KanbanBoard (dnd-kit), TaskDialog
     invites/            # invite-supervisor + accept-invite forms
     comments/           # CommentSection (thread with edit/delete)
+    meetings/           # meeting form + convert/add action controls
     ProgressBar.tsx     # shared progress bar
     StatusBadge.tsx     # shared status badge
   lib/
@@ -110,6 +113,7 @@ src/
     validation.ts       # Zod schemas
     invites.ts          # pure invite token / hashing / expiry helpers
     navigation.ts       # safe same-site callbackUrl helper
+    meetings.ts         # pure agreed-action textarea parser
     csv-import.ts       # pure GanttProject CSV → project plan parser
     password.ts         # scrypt hashing (node:crypto, no native deps)
     data.ts             # membership-scoped read queries
@@ -178,5 +182,9 @@ Importing the same title + dates twice for the same user is refused.
   get a read-only `/supervisor` view and can comment on milestones (the owner
   sees the thread on the board). Remove-supervisor and revoke-invite controls
   are included.
-- **Phases 2–4:** meetings UI, open questions, reviews + dashboard, sharing and
-  export.
+- **Meetings (done):** a project meeting log (date, next date, optional
+  milestone, items discussed, what went well, problems). Agreed actions are
+  `MeetingTask` lines that can be added or removed individually, and a
+  one-click **Convert to task** creates a `MEETING`-sourced kanban card on the
+  meeting's milestone (or a chosen one) and links the two.
+- **Phases 2–4:** open questions, reviews + dashboard, sharing and export.

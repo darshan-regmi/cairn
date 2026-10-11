@@ -175,3 +175,56 @@ export const deleteCommentSchema = z.object({
 
 export type CreateInviteInput = z.infer<typeof inviteEmailSchema>;
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;
+
+// ---------- Meetings ----------
+
+// Empty textareas arrive as "" and are stored as null so "not written" and
+// "written nothing" stay the same thing.
+const optionalNote = z
+  .string()
+  .trim()
+  .max(4000)
+  .nullish()
+  .transform((value) => (value ? value : null));
+
+export const createMeetingSchema = z.object({
+  projectId: z.string().min(1, "Missing project."),
+  milestoneId: z.string().min(1).nullish(),
+  date: dateInput,
+  nextMeetingDate: dateInput.nullish(),
+  itemsDiscussed: optionalNote,
+  achievements: optionalNote,
+  problems: optionalNote,
+  // Free text, one agreed action per line; parsed by parseActionLines().
+  actionItems: z.string().max(8000).nullish(),
+});
+
+export const updateMeetingSchema = z.object({
+  meetingId: z.string().min(1),
+  milestoneId: z.string().min(1).nullish(),
+  date: dateInput,
+  nextMeetingDate: dateInput.nullish(),
+  itemsDiscussed: optionalNote,
+  achievements: optionalNote,
+  problems: optionalNote,
+});
+
+export const deleteMeetingSchema = z.object({
+  meetingId: z.string().min(1),
+});
+
+export const addMeetingTaskSchema = z.object({
+  meetingId: z.string().min(1),
+  text: z.string().trim().min(1, "Write the action first.").max(200),
+});
+
+export const deleteMeetingTaskSchema = z.object({
+  meetingTaskId: z.string().min(1),
+});
+
+// Converting an action into a card needs a milestone to put it on: the
+// meeting's own one, or a chosen one when the meeting has none.
+export const convertMeetingTaskSchema = z.object({
+  meetingTaskId: z.string().min(1),
+  milestoneId: z.string().min(1, "Pick a milestone for the task."),
+});

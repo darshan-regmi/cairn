@@ -2,6 +2,7 @@ import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { ownerWhere } from "@/lib/access";
 import {
+  findMeetingsForUser,
   findMilestoneForUser,
   findProjectForUser,
   findSupervisorProject,
@@ -213,6 +214,67 @@ describeDb("DB-backed authorization", () => {
       expect(comments).toHaveLength(1);
       expect(comments[0].body).toContain("Good progress here");
       expect(comments[0].author.email).toContain("supervisor_");
+    });
+  });
+
+  describe("meetings and agreed actions", () => {
+    let meetingId = "";
+
+    beforeAll(async () => {
+      const meeting = await prisma.meeting.create({
+        data: {
+          projectId,
+          milestoneId,
+          date: new Date(2026, 1, 3),
+          nextMeetingDate: new Date(2026, 1, 17),
+          itemsDiscussed: "Progress on the foundation milestone.",
+          problems: "Waiting on the dataset.",
+          actionItems: { create: [{ text: "Draft the evaluation plan" }] },
+        },
+      });
+      meetingId = meeting.id;
+    });
+
+    it("lists a meeting for the owner with its agreed actions", async () => {
+      const view = await findMeetingsForUser(projectId, ownerId);
+      expect(view).not.toBeNull();
+      const meeting = view?.meetings.find((m) => m.id === meetingId);
+      expect(meeting).toBeDefined();
+      expect(meeting?.actionItems).toHaveLength(1);
+      expect(meeting?.actionItems[0].text).toBe("Draft the evaluation plan");
+      expect(meeting?.actionItems[0].task).toBeNull();
+    });
+
+    it("returns nothing to a non-member", async () => {
+      expect(await findMeetingsForUser(projectId, intruderId)).toBeNull();
+    });
+
+    it("reads a converted action back with its board task", async () => {
+      const action = await prisma.meetingTask.findFirstOrThrow({
+        where: { meetingId },
+      });
+      const task = await prisma.task.create({
+        data: {
+          milestoneId,
+          title: action.text,
+          status: "TODO",
+          priority: "MEDIUM",
+          source: "MEETING",
+          sourceMeetingId: meetingId,
+          order: 99,
+        },
+      });
+      await prisma.meetingTask.update({
+        where: { id: action.id },
+        data: { taskId: task.id },
+      });
+
+      const view = await findMeetingsForUser(projectId, ownerId);
+      const converted = view?.meetings
+        .find((m) => m.id === meetingId)
+        ?.actionItems.find((a) => a.id === action.id);
+      expect(converted?.task?.id).toBe(task.id);
+      expect(converted?.task?.milestoneId).toBe(milestoneId);
     });
   });
 
