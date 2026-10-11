@@ -108,3 +108,22 @@ export const questionStatusTone: Record<QuestionStatus, StatusTone> = {
   PARKED: "amber",
   DROPPED: "zinc",
 };
+
+export const REVIEW_VERDICTS = [
+  "ON_TRACK",
+  "PARTLY_MET",
+  "OFF_TRACK",
+] as const;
+export type ReviewVerdict = (typeof REVIEW_VERDICTS)[number];
+
+export const reviewVerdictLabel: Record<ReviewVerdict, string> = {
+  ON_TRACK: "On track",
+  PARTLY_MET: "Partly met",
+  OFF_TRACK: "Off track",
+};
+
+export const reviewVerdictTone: Record<ReviewVerdict, StatusTone> = {
+  ON_TRACK: "emerald",
+  PARTLY_MET: "amber",
+  OFF_TRACK: "red",
+};

@@ -40,18 +40,22 @@ export function findProjectForUser(projectId: string, userId: string) {
       _count: { select: { meetings: true, questions: true } },
       milestones: {
         orderBy: [{ order: "asc" }, { plannedStart: "asc" }],
-        include: { tasks: { select: { status: true } } },
+        include: {
+          review: { select: { verdict: true } },
+          tasks: { select: { status: true } },
+        },
       },
     },
   });
 }
 
-/** Milestone board: the milestone plus its tasks (for the kanban). */
+/** Milestone board: the milestone plus its tasks (for the kanban) and review. */
 export function findMilestoneForUser(milestoneId: string, userId: string) {
   return prisma.milestone.findFirst({
     where: { id: milestoneId, project: memberWhere(userId) },
     include: {
       project: true,
+      review: true,
       tasks: {
         orderBy: [{ status: "asc" }, { order: "asc" }],
       },
@@ -74,7 +78,10 @@ export function findSupervisorProject(projectId: string, userId: string) {
     include: {
       milestones: {
         orderBy: [{ order: "asc" }, { plannedStart: "asc" }],
-        include: { tasks: { select: { status: true } } },
+        include: {
+          review: true,
+          tasks: { select: { status: true } },
+        },
       },
       meetings: {
         orderBy: { date: "desc" },

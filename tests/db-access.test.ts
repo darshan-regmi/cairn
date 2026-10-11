@@ -339,6 +339,42 @@ describeDb("DB-backed authorization", () => {
     });
   });
 
+  describe("milestone reviews", () => {
+    it("reads a milestone for the owner with its review attached", async () => {
+      await prisma.review.create({
+        data: {
+          milestoneId,
+          date: new Date(2026, 0, 15),
+          verdict: "PARTLY_MET",
+          askedFor: "A working upload.",
+          demonstrated: "Upload works, but no progress bar.",
+          promised: "Progress bar by the next review.",
+        },
+      });
+
+      const view = await findMilestoneForUser(milestoneId, ownerId);
+      expect(view?.review?.verdict).toBe("PARTLY_MET");
+      expect(view?.review?.askedFor).toContain("upload");
+      expect(view?.review?.promised).toContain("Progress bar");
+    });
+
+    it("surfaces the verdict on the project timeline for the owner", async () => {
+      const view = await findProjectForUser(projectId, ownerId);
+      const milestone = view?.milestones.find((m) => m.id === milestoneId);
+      expect(milestone?.review?.verdict).toBe("PARTLY_MET");
+    });
+
+    it("shows the review to a supervisor through the supervised project", async () => {
+      const view = await findSupervisorProject(projectId, supervisorId);
+      const milestone = view?.milestones.find((m) => m.id === milestoneId);
+      expect(milestone?.review?.verdict).toBe("PARTLY_MET");
+    });
+
+    it("hides the milestone and its review from a non-member", async () => {
+      expect(await findMilestoneForUser(milestoneId, intruderId)).toBeNull();
+    });
+  });
+
   describe("imported plans stay membership-scoped", () => {
     // Mirrors the shape importProjectAction writes: a project with a goal,
     // milestones with goals/order and tasks with notes and due dates.

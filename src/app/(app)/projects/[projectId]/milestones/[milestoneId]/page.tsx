@@ -14,10 +14,14 @@ import {
   CommentSection,
   type CommentItem,
 } from "@/components/comments/CommentSection";
+import { ReviewCard } from "@/components/reviews/ReviewCard";
+import { ReviewFormPanel } from "@/components/reviews/ReviewForm";
+import { deleteReviewAction } from "@/actions/reviews";
 import {
   milestoneStatusLabel,
   milestoneStatusTone,
   type MilestoneStatus,
+  type ReviewVerdict,
 } from "@/lib/status";
 
 type CommentRows = Awaited<ReturnType<typeof listCommentsForTarget>>;
@@ -135,6 +139,56 @@ export default async function MilestoneKanbanPage({
         milestoneId={milestone.id}
         initialCards={cards}
       />
+
+      <section className="mt-10 max-w-3xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-medium">Review</h2>
+          {milestone.review && (
+            <form action={deleteReviewAction}>
+              <input type="hidden" name="milestoneId" value={milestone.id} />
+              <button
+                type="submit"
+                className="rounded px-1 text-xs text-muted transition-colors hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent dark:hover:text-red-400"
+              >
+                Delete review
+              </button>
+            </form>
+          )}
+        </div>
+
+        <div className="mt-3 space-y-3">
+          {milestone.review ? (
+            <ReviewCard
+              review={{
+                date: toDateInput(milestone.review.date),
+                verdict: milestone.review.verdict as ReviewVerdict,
+                askedFor: milestone.review.askedFor,
+                demonstrated: milestone.review.demonstrated,
+                promised: milestone.review.promised,
+              }}
+            />
+          ) : (
+            <p className="text-sm text-muted">
+              Note how this milestone was reviewed, and what was agreed for next
+              time.
+            </p>
+          )}
+          <ReviewFormPanel
+            milestoneId={milestone.id}
+            review={
+              milestone.review
+                ? {
+                    date: toDateInput(milestone.review.date),
+                    verdict: milestone.review.verdict as ReviewVerdict,
+                    askedFor: milestone.review.askedFor ?? "",
+                    demonstrated: milestone.review.demonstrated ?? "",
+                    promised: milestone.review.promised ?? "",
+                  }
+                : undefined
+            }
+          />
+        </div>
+      </section>
 
       <div className="mt-10 max-w-3xl">
         <CommentSection

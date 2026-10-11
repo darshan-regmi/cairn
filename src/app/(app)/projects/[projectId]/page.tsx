@@ -16,7 +16,10 @@ import { StatusBadge } from "@/components/StatusBadge";
 import {
   milestoneStatusLabel,
   milestoneStatusTone,
+  reviewVerdictLabel,
+  reviewVerdictTone,
   type MilestoneStatus,
+  type ReviewVerdict,
 } from "@/lib/status";
 import { AddMilestoneForm } from "@/components/timeline/AddMilestoneForm";
 import { MilestoneStatusControl } from "@/components/timeline/MilestoneStatusControl";
@@ -229,6 +232,20 @@ export default async function ProjectTimelinePage({
                       label={milestoneStatusLabel[milestone.status as MilestoneStatus]}
                       tone={milestoneStatusTone[milestone.status as MilestoneStatus]}
                     />
+                    {milestone.review && (
+                      <StatusBadge
+                        label={
+                          reviewVerdictLabel[
+                            milestone.review.verdict as ReviewVerdict
+                          ]
+                        }
+                        tone={
+                          reviewVerdictTone[
+                            milestone.review.verdict as ReviewVerdict
+                          ]
+                        }
+                      />
+                    )}
                     <span className="text-xs text-muted">
                       {toDateInput(milestone.plannedStart)} →{" "}
                       {toDateInput(milestone.plannedEnd)}

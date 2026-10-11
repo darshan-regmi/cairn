@@ -14,6 +14,7 @@ import {
   CommentSection,
   type CommentItem,
 } from "@/components/comments/CommentSection";
+import { ReviewCard } from "@/components/reviews/ReviewCard";
 import {
   milestoneStatusLabel,
   milestoneStatusTone,
@@ -21,6 +22,7 @@ import {
   questionStatusTone,
   type MilestoneStatus,
   type QuestionStatus,
+  type ReviewVerdict,
 } from "@/lib/status";
 
 type CommentRows = Awaited<ReturnType<typeof listCommentsForTarget>>;
@@ -136,6 +138,27 @@ export default async function SupervisorProjectPage({
                   <span className="shrink-0 text-xs text-muted">
                     {progress.doneTasks}/{progress.totalTasks} · {progress.progressPercent}%
                   </span>
+                </div>
+
+                <div className="mt-4">
+                  <p className="text-xs font-medium text-muted">Review</p>
+                  {milestone.review ? (
+                    <div className="mt-1">
+                      <ReviewCard
+                        review={{
+                          date: toDateInput(milestone.review.date),
+                          verdict: milestone.review.verdict as ReviewVerdict,
+                          askedFor: milestone.review.askedFor,
+                          demonstrated: milestone.review.demonstrated,
+                          promised: milestone.review.promised,
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-sm text-muted">
+                      No review recorded yet.
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-4">

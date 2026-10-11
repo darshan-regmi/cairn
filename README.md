@@ -81,7 +81,7 @@ src/
     (app)/              # protected pages (auth guard + header live here)
       projects/         # project list + create form
       projects/[projectId]/            # milestone timeline + supervisors
-      projects/[projectId]/milestones/[milestoneId]  # kanban board + comments
+      projects/[projectId]/milestones/[milestoneId]  # kanban board + review + comments
       projects/[projectId]/meetings/   # supervision meeting log + action -> task
       projects/[projectId]/questions/  # open questions + adopt -> task
       supervisor/       # projects you supervise (read-only)
@@ -98,6 +98,7 @@ src/
     comments.ts         # createComment, updateComment, deleteComment
     meetings.ts         # createMeeting, updateMeeting, deleteMeeting, addAction, convertActionToTask
     questions.ts        # createQuestion, updateQuestion, deleteQuestion, setStatus, adoptAsTask
+    reviews.ts          # saveReview (upsert), deleteReview
   components/
     auth/               # client-side sign-in/sign-up forms
     projects/           # create-project + CSV import forms
@@ -107,6 +108,7 @@ src/
     comments/           # CommentSection (thread with edit/delete)
     meetings/           # meeting form + convert/add action controls
     questions/          # question form + status/adopt controls
+    reviews/            # review card + record/edit panel
     ProgressBar.tsx     # shared progress bar
     StatusBadge.tsx     # shared status badge
   lib/
@@ -194,4 +196,9 @@ Importing the same title + dates twice for the same user is refused.
   weighing-up notes (if we do it / what it costs / if we don't), track
   OPEN / ADOPTED / PARKED / DROPPED, and **Adopt as task** creates a
   `QUESTION`-sourced card on a chosen milestone with the decision recorded.
-- **Phases 2–4:** reviews + dashboard, sharing and export.
+- **Milestone reviews (done):** each milestone holds one review — a date, a
+  verdict (On track / Partly met / Off track) and the asked-for / demonstrated
+  / promised notes. Owners record, edit and delete it on the board; the verdict
+  shows on the project timeline, and supervisors read the review (their
+  feedback still lives in comments).
+- **Phases 2–4:** dashboard, sharing and export.

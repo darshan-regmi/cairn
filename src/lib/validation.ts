@@ -265,3 +265,19 @@ export const adoptQuestionSchema = z.object({
   milestoneId: z.string().min(1, "Pick a milestone for the task."),
   decision: optionalNote,
 });
+
+// ---------- Milestone reviews ----------
+
+// One review per milestone (milestoneId is unique), so saving upserts.
+export const saveReviewSchema = z.object({
+  milestoneId: z.string().min(1),
+  date: dateInput,
+  verdict: z.enum(["ON_TRACK", "PARTLY_MET", "OFF_TRACK"]),
+  askedFor: optionalNote,
+  demonstrated: optionalNote,
+  promised: optionalNote,
+});
+
+export const deleteReviewSchema = z.object({
+  milestoneId: z.string().min(1),
+});
