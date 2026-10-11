@@ -174,9 +174,53 @@ export default async function SharedProjectPage({
         )}
       </section>
 
+      <section aria-labelledby="meetings-heading" className="mt-10">
+        <h2 id="meetings-heading" className="text-lg font-medium">
+          Meetings
+        </h2>
+
+        {project.meetings.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No meetings logged yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-4">
+            {project.meetings.map((meeting) => (
+              <li key={meeting.id} className="rounded-lg border border-edge p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm font-medium">
+                    {toDateInput(meeting.date)}
+                  </span>
+                  {meeting.nextMeetingDate && (
+                    <span className="text-xs text-muted">
+                      Next: {toDateInput(meeting.nextMeetingDate)}
+                    </span>
+                  )}
+                </div>
+                {meeting.itemsDiscussed && (
+                  <p className="mt-2 whitespace-pre-wrap text-sm">
+                    {meeting.itemsDiscussed}
+                  </p>
+                )}
+                {meeting.achievements && (
+                  <p className="mt-2 text-sm text-muted">
+                    <span className="font-medium">Achievements: </span>
+                    {meeting.achievements}
+                  </p>
+                )}
+                {meeting.problems && (
+                  <p className="mt-2 text-sm text-muted">
+                    <span className="font-medium">Problems: </span>
+                    {meeting.problems}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <footer className="mt-12 border-t border-edge pt-4 text-xs text-muted">
-        Shared by the project owner. Meetings, comments and private notes are not
-        shown here.
+        Shared by the project owner. Comments and private notes are not shown
+        here.
       </footer>
     </main>
   );

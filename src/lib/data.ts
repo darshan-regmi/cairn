@@ -49,7 +49,20 @@ export function listSupervisedProjectsForUser(userId: string) {
   return prisma.project.findMany({
     where: { members: { some: { userId, role: "SUPERVISOR" } } },
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { milestones: true } } },
+    include: {
+      _count: { select: { milestones: true } },
+      milestones: {
+        select: {
+          status: true,
+          plannedEnd: true,
+          tasks: { select: { status: true, due: true } },
+        },
+      },
+      meetings: {
+        select: { date: true, nextMeetingDate: true },
+        orderBy: { date: "desc" },
+      },
+    },
   });
 }
 
@@ -104,6 +117,17 @@ export async function findSharedProject(token: string, now = new Date()) {
           },
         },
       },
+      meetings: {
+        orderBy: { date: "desc" },
+        select: {
+          id: true,
+          date: true,
+          nextMeetingDate: true,
+          itemsDiscussed: true,
+          achievements: true,
+          problems: true,
+        },
+      },
     },
   });
   if (!project || !isShareActive(project, now)) return null;
@@ -118,6 +142,10 @@ export function findMilestoneForUser(milestoneId: string, userId: string) {
       project: true,
       review: true,
       evidence: { orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
+      meetings: {
+        orderBy: { date: "desc" },
+        include: { actionItems: { orderBy: { createdAt: "asc" } } },
+      },
       tasks: {
         orderBy: [{ status: "asc" }, { order: "asc" }],
       },

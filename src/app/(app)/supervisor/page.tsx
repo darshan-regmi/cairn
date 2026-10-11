@@ -2,13 +2,18 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { listSupervisedProjectsForUser } from "@/lib/data";
+import { summarizeSupervisedProjects } from "@/lib/supervisor";
 import { toDateInput } from "@/lib/milestone-metrics";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export default async function SupervisorHomePage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const projects = await listSupervisedProjectsForUser(session.user.id);
+  const projects = summarizeSupervisedProjects(
+    await listSupervisedProjectsForUser(session.user.id),
+    new Date(),
+  );
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-6xl px-4 py-12">
@@ -36,15 +41,26 @@ export default async function SupervisorHomePage() {
                 href={`/supervisor/${project.id}`}
                 className="group block rounded-lg border border-edge p-5 transition-colors hover:border-accent/50 hover:bg-accent/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
-                <h2 className="font-medium transition-colors group-hover:text-accent">
-                  {project.title}
-                </h2>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="font-medium transition-colors group-hover:text-accent">
+                    {project.title}
+                  </h2>
+                  <StatusBadge
+                    label={project.isBehind ? "Behind" : "On track"}
+                    tone={project.isBehind ? "red" : "emerald"}
+                  />
+                </div>
                 <p className="mt-2 text-sm text-muted">
                   {toDateInput(project.startDate)} → {toDateInput(project.endDate)}
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  {project._count.milestones}{" "}
-                  {project._count.milestones === 1 ? "milestone" : "milestones"}
+                  {project.milestoneCount}{" "}
+                  {project.milestoneCount === 1 ? "milestone" : "milestones"}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  {project.nextMeetingDate
+                    ? `Next meeting ${toDateInput(project.nextMeetingDate)}`
+                    : "No meeting scheduled"}
                 </p>
               </Link>
             </li>

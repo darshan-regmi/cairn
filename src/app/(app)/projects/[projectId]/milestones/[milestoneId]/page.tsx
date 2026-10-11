@@ -241,6 +241,56 @@ export default async function MilestoneKanbanPage({
           initialComments={comments}
         />
       </div>
+
+      {milestone.meetings.length > 0 && (
+        <section aria-labelledby="meetings-heading" className="mt-10 max-w-3xl">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="meetings-heading" className="text-lg font-medium">
+              Meetings
+            </h2>
+            <Link
+              href={`/projects/${milestone.projectId}/meetings`}
+              className="rounded text-sm text-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              Open meeting log
+            </Link>
+          </div>
+          <ul className="mt-3 space-y-3">
+            {milestone.meetings.map((meeting) => (
+              <li key={meeting.id} className="rounded-lg border border-edge p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm font-medium">
+                    {toDateInput(meeting.date)}
+                  </span>
+                  {meeting.nextMeetingDate && (
+                    <span className="text-xs text-muted">
+                      Next: {toDateInput(meeting.nextMeetingDate)}
+                    </span>
+                  )}
+                </div>
+                {meeting.problems && (
+                  <p className="mt-2 text-sm text-muted">
+                    <span className="font-medium">Problems: </span>
+                    {meeting.problems}
+                  </p>
+                )}
+                {meeting.actionItems.length > 0 && (
+                  <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm text-muted">
+                    {meeting.actionItems.map((item) => (
+                      <li key={item.id}>
+                        {item.text}
+                        {item.taskId && (
+                          <span className="ml-2 text-xs">→ on the board</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }
