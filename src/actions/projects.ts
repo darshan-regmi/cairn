@@ -11,6 +11,7 @@ import {
   createProjectSchema,
   importProjectSchema,
   milestoneStatusSchema,
+  rescheduleMilestoneSchema,
   saveMilestoneDetailsSchema,
 } from "@/lib/validation";
 import { parseProjectCsv } from "@/lib/csv-import";
@@ -247,6 +248,107 @@ export async function saveMilestoneDetailsAction(
     data: {
       scope: parsed.data.scope,
       definitionOfDone: parsed.data.definitionOfDone,
+    },
+  });
+
+  revalidatePath(`/projects/${milestone.projectId}`);
+  revalidatePath(`/projects/${milestone.projectId}/milestones/${milestone.id}`);
+  revalidatePath(`/supervisor/${milestone.projectId}`);
+  return { success: true };
+}
+
+/**
+ * Move a milestone one place up or down. The whole project is re-numbered
+ * 0..n-1 in one transaction so gaps and swaps never violate the
+ * @@unique([projectId, order]) constraint (orders go negative first, then to
+ * their final values).
+ */
+export async function moveMilestoneAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const parsed = z
+    .object({
+      milestoneId: z.string().min(1),
+      direction: z.enum(["up", "down"]),
+    })
+    .safeParse({
+      milestoneId: formData.get("milestoneId"),
+      direction: formData.get("direction"),
+    });
+  if (!parsed.success) return;
+
+  const milestone = await prisma.milestone.findFirst({
+    where: { id: parsed.data.milestoneId, project: ownerWhere(session.user.id) },
+    select: { id: true, projectId: true },
+  });
+  if (!milestone) return;
+
+  const siblings = await prisma.milestone.findMany({
+    where: { projectId: milestone.projectId },
+    orderBy: [{ order: "asc" }, { plannedStart: "asc" }],
+    select: { id: true },
+  });
+
+  const current = siblings.findIndex((sibling) => sibling.id === milestone.id);
+  const target = parsed.data.direction === "up" ? current - 1 : current + 1;
+  if (current === -1 || target < 0 || target >= siblings.length) return;
+
+  const reordered = [...siblings];
+  [reordered[current], reordered[target]] = [
+    reordered[target],
+    reordered[current],
+  ];
+
+  await prisma.$transaction(async (tx) => {
+    for (const [index, sibling] of reordered.entries()) {
+      await tx.milestone.update({
+        where: { id: sibling.id },
+        data: { order: -(index + 1) },
+      });
+    }
+    for (const [index, sibling] of reordered.entries()) {
+      await tx.milestone.update({
+        where: { id: sibling.id },
+        data: { order: index },
+      });
+    }
+  });
+
+  revalidatePath(`/projects/${milestone.projectId}`);
+}
+
+/** Change a milestone's planned dates without touching its tasks. */
+export async function rescheduleMilestoneAction(
+  _prev: ProjectActionState,
+  formData: FormData,
+): Promise<ProjectActionState> {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "Not signed in." };
+
+  const parsed = rescheduleMilestoneSchema.safeParse({
+    milestoneId: formData.get("milestoneId"),
+    plannedStart: formData.get("plannedStart"),
+    plannedEnd: formData.get("plannedEnd"),
+  });
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+
+  const milestone = await prisma.milestone.findFirst({
+    where: { id: parsed.data.milestoneId, project: ownerWhere(session.user.id) },
+    select: { id: true, projectId: true },
+  });
+  if (!milestone) return { success: false, error: "Milestone not found." };
+
+  await prisma.milestone.update({
+    where: { id: milestone.id },
+    data: {
+      plannedStart: new Date(`${parsed.data.plannedStart}T00:00:00`),
+      plannedEnd: new Date(`${parsed.data.plannedEnd}T00:00:00`),
     },
   });
 

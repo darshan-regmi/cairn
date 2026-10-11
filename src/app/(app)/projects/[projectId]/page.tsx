@@ -24,6 +24,10 @@ import {
 } from "@/lib/status";
 import { AddMilestoneForm } from "@/components/timeline/AddMilestoneForm";
 import { MilestoneStatusControl } from "@/components/timeline/MilestoneStatusControl";
+import {
+  MoveMilestoneButtons,
+  RescheduleMilestonePanel,
+} from "@/components/timeline/MilestoneControls";
 import { InviteSupervisorForm } from "@/components/invites/InviteSupervisorForm";
 import { ShareLinkPanel } from "@/components/share/ShareLinkPanel";
 
@@ -292,10 +296,20 @@ export default async function ProjectTimelinePage({
                     </span>
                   </div>
 
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
                     <MilestoneStatusControl
                       milestoneId={milestone.id}
                       status={milestone.status as MilestoneStatus}
+                    />
+                    <MoveMilestoneButtons
+                      milestoneId={milestone.id}
+                      isFirst={milestone.index === 0}
+                      isLast={milestone.index === milestones.length - 1}
+                    />
+                    <RescheduleMilestonePanel
+                      milestoneId={milestone.id}
+                      plannedStart={toDateInput(milestone.plannedStart)}
+                      plannedEnd={toDateInput(milestone.plannedEnd)}
                     />
                   </div>
                 </div>

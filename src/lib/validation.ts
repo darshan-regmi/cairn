@@ -358,6 +358,19 @@ export const saveMilestoneDetailsSchema = z.object({
   definitionOfDone: optionalNote,
 });
 
+// Changing a milestone's planned dates is the "reschedule" action on the
+// timeline. End must stay on or after start.
+export const rescheduleMilestoneSchema = z
+  .object({
+    milestoneId: z.string().min(1, "Missing milestone."),
+    plannedStart: dateInput,
+    plannedEnd: dateInput,
+  })
+  .refine((input) => input.plannedEnd >= input.plannedStart, {
+    message: "End date must be on or after the start date.",
+    path: ["plannedEnd"],
+  });
+
 // A deliverable link follows the same rule as evidence: blank stays null, and
 // anything else must be http(s) so it can never become a javascript: link.
 const optionalDeliverableUrl = z
