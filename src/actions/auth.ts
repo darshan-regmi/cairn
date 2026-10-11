@@ -3,6 +3,7 @@
 import { Prisma } from "@/generated/prisma/client";
 import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
+import { isSignupAllowed } from "@/lib/config";
 import { signUpSchema } from "@/lib/validation";
 
 export type SignUpState = {
@@ -16,10 +17,18 @@ export async function signUp(
   _prev: SignUpState,
   formData: FormData,
 ): Promise<SignUpState> {
+  if (!isSignupAllowed()) {
+    return {
+      success: false,
+      error: "Sign-ups are closed. Ask the admin to invite you.",
+    };
+  }
+
   const parsed = signUpSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
+    role: formData.get("role"),
   });
 
   if (!parsed.success) {
@@ -38,7 +47,9 @@ export async function signUp(
   const passwordHash = await hashPassword(parsed.data.password);
 
   try {
-    await prisma.user.create({ data: { email, name, passwordHash } });
+    await prisma.user.create({
+      data: { email, name, passwordHash, role: parsed.data.role },
+    });
     return { success: true };
   } catch (error) {
     if (

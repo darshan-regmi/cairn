@@ -80,6 +80,35 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
         <p className="text-xs text-muted">At least 8 characters.</p>
       </div>
 
+      <fieldset className="space-y-2">
+        <legend className="block text-sm font-medium">I am a…</legend>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="flex cursor-pointer items-center gap-2 rounded-md border border-edge px-3 py-2 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/10">
+            <input
+              type="radio"
+              name="role"
+              value="STUDENT"
+              defaultChecked
+              className="accent-accent"
+            />
+            Student
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 rounded-md border border-edge px-3 py-2 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/10">
+            <input
+              type="radio"
+              name="role"
+              value="SUPERVISOR"
+              className="accent-accent"
+            />
+            Supervisor
+          </label>
+        </div>
+        <p className="text-xs text-muted">
+          This just sets up your side of the app. On a project, your rights
+          depend on whether you own it or were invited.
+        </p>
+      </fieldset>
+
       {state.error && (
         <p className="text-sm text-red-700 dark:text-red-400">{state.error}</p>
       )}

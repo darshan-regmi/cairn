@@ -8,6 +8,12 @@ export const signUpSchema = z.object({
     .string()
     .min(8, "Password must be at least 8 characters.")
     .max(200),
+  // The role a person is in general; per-project rights live on ProjectMember.
+  // Missing means the common case: a student running their own project.
+  role: z
+    .enum(["STUDENT", "SUPERVISOR"])
+    .nullish()
+    .transform((value) => value ?? "STUDENT"),
 });
 
 export const loginSchema = z.object({
