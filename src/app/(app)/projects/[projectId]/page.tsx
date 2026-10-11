@@ -85,7 +85,7 @@ export default async function ProjectTimelinePage({
           <p className="mt-1 text-sm text-muted">
             {toDateInput(project.startDate)} → {toDateInput(project.endDate)}
           </p>
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <Link
               href={`/projects/${project.id}/meetings`}
               className="inline-flex items-center gap-1 rounded-md border border-edge px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -93,6 +93,15 @@ export default async function ProjectTimelinePage({
               Meetings
               {project._count.meetings > 0 && (
                 <span className="text-muted">· {project._count.meetings}</span>
+              )}
+            </Link>
+            <Link
+              href={`/projects/${project.id}/questions`}
+              className="inline-flex items-center gap-1 rounded-md border border-edge px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              Questions
+              {project._count.questions > 0 && (
+                <span className="text-muted">· {project._count.questions}</span>
               )}
             </Link>
           </div>

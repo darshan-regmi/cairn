@@ -37,7 +37,7 @@ export function findProjectForUser(projectId: string, userId: string) {
   return prisma.project.findFirst({
     where: { id: projectId, ...memberWhere(userId) },
     include: {
-      _count: { select: { meetings: true } },
+      _count: { select: { meetings: true, questions: true } },
       milestones: {
         orderBy: [{ order: "asc" }, { plannedStart: "asc" }],
         include: { tasks: { select: { status: true } } },
@@ -108,6 +108,28 @@ export function findMeetingsForUser(projectId: string, userId: string) {
               task: { select: { id: true, status: true, milestoneId: true } },
             },
           },
+        },
+      },
+    },
+  });
+}
+
+/** Questions page: the project, its milestones (for the picker), and its questions. */
+export function findQuestionsForUser(projectId: string, userId: string) {
+  return prisma.project.findFirst({
+    where: { id: projectId, ...memberWhere(userId) },
+    select: {
+      id: true,
+      title: true,
+      milestones: {
+        orderBy: [{ order: "asc" }, { plannedStart: "asc" }],
+        select: { id: true, name: true },
+      },
+      questions: {
+        orderBy: { raisedAt: "desc" },
+        include: {
+          milestone: { select: { id: true, name: true } },
+          task: { select: { id: true, status: true, milestoneId: true } },
         },
       },
     },

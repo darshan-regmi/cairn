@@ -83,6 +83,7 @@ src/
       projects/[projectId]/            # milestone timeline + supervisors
       projects/[projectId]/milestones/[milestoneId]  # kanban board + comments
       projects/[projectId]/meetings/   # supervision meeting log + action -> task
+      projects/[projectId]/questions/  # open questions + adopt -> task
       supervisor/       # projects you supervise (read-only)
       supervisor/[projectId]/          # read-only review view + comments
     (auth)/login        # sign-in page
@@ -96,6 +97,7 @@ src/
     invites.ts          # createInvite, acceptInvite, removeSupervisor, revokeInvite
     comments.ts         # createComment, updateComment, deleteComment
     meetings.ts         # createMeeting, updateMeeting, deleteMeeting, addAction, convertActionToTask
+    questions.ts        # createQuestion, updateQuestion, deleteQuestion, setStatus, adoptAsTask
   components/
     auth/               # client-side sign-in/sign-up forms
     projects/           # create-project + CSV import forms
@@ -104,6 +106,7 @@ src/
     invites/            # invite-supervisor + accept-invite forms
     comments/           # CommentSection (thread with edit/delete)
     meetings/           # meeting form + convert/add action controls
+    questions/          # question form + status/adopt controls
     ProgressBar.tsx     # shared progress bar
     StatusBadge.tsx     # shared status badge
   lib/
@@ -187,4 +190,8 @@ Importing the same title + dates twice for the same user is refused.
   `MeetingTask` lines that can be added or removed individually, and a
   one-click **Convert to task** creates a `MEETING`-sourced kanban card on the
   meeting's milestone (or a chosen one) and links the two.
-- **Phases 2–4:** open questions, reviews + dashboard, sharing and export.
+- **Open questions (done):** raise a question with context and the three
+  weighing-up notes (if we do it / what it costs / if we don't), track
+  OPEN / ADOPTED / PARKED / DROPPED, and **Adopt as task** creates a
+  `QUESTION`-sourced card on a chosen milestone with the decision recorded.
+- **Phases 2–4:** reviews + dashboard, sharing and export.

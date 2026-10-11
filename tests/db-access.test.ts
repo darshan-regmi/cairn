@@ -5,6 +5,7 @@ import {
   findMeetingsForUser,
   findMilestoneForUser,
   findProjectForUser,
+  findQuestionsForUser,
   findSupervisorProject,
   findTaskForUser,
   listCommentsForTarget,
@@ -275,6 +276,66 @@ describeDb("DB-backed authorization", () => {
         ?.actionItems.find((a) => a.id === action.id);
       expect(converted?.task?.id).toBe(task.id);
       expect(converted?.task?.milestoneId).toBe(milestoneId);
+    });
+  });
+
+  describe("open questions", () => {
+    let questionId = "";
+
+    beforeAll(async () => {
+      const question = await prisma.question.create({
+        data: {
+          projectId,
+          milestoneId,
+          title: "Do we need a native mobile app?",
+          context: "The web app is already responsive.",
+          ifWeDoIt: "A second codebase to maintain.",
+          whatItCosts: "Six weeks of the final term.",
+          ifWeDont: "Reviewers may ask about mobile support.",
+        },
+      });
+      questionId = question.id;
+    });
+
+    it("lists a question for the owner with its weighing-up notes", async () => {
+      const view = await findQuestionsForUser(projectId, ownerId);
+      expect(view).not.toBeNull();
+      const question = view?.questions.find((q) => q.id === questionId);
+      expect(question?.title).toContain("native mobile app");
+      expect(question?.whatItCosts).toContain("Six weeks");
+      expect(question?.task).toBeNull();
+    });
+
+    it("returns nothing to a non-member", async () => {
+      expect(await findQuestionsForUser(projectId, intruderId)).toBeNull();
+    });
+
+    it("reads an adopted question back with its board task", async () => {
+      const task = await prisma.task.create({
+        data: {
+          milestoneId,
+          title: "Do we need a native mobile app?",
+          status: "TODO",
+          priority: "MEDIUM",
+          source: "QUESTION",
+          sourceQuestionId: questionId,
+          order: 98,
+        },
+      });
+      await prisma.question.update({
+        where: { id: questionId },
+        data: {
+          status: "ADOPTED",
+          decidedAt: new Date(),
+          decision: "Web-only for this year.",
+        },
+      });
+
+      const view = await findQuestionsForUser(projectId, ownerId);
+      const adopted = view?.questions.find((q) => q.id === questionId);
+      expect(adopted?.task?.id).toBe(task.id);
+      expect(adopted?.task?.milestoneId).toBe(milestoneId);
+      expect(adopted?.decision).toBe("Web-only for this year.");
     });
   });
 

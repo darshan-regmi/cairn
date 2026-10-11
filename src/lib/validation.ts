@@ -228,3 +228,40 @@ export const convertMeetingTaskSchema = z.object({
   meetingTaskId: z.string().min(1),
   milestoneId: z.string().min(1, "Pick a milestone for the task."),
 });
+
+// ---------- Open questions ----------
+
+const questionFields = {
+  title: z.string().trim().min(1, "Write the question.").max(200),
+  context: optionalNote,
+  ifWeDoIt: optionalNote,
+  whatItCosts: optionalNote,
+  ifWeDont: optionalNote,
+};
+
+export const createQuestionSchema = z.object({
+  projectId: z.string().min(1, "Missing project."),
+  milestoneId: z.string().min(1).nullish(),
+  ...questionFields,
+});
+
+export const updateQuestionSchema = z.object({
+  questionId: z.string().min(1),
+  milestoneId: z.string().min(1).nullish(),
+  ...questionFields,
+});
+
+export const deleteQuestionSchema = z.object({
+  questionId: z.string().min(1),
+});
+
+export const setQuestionStatusSchema = z.object({
+  questionId: z.string().min(1),
+  status: z.enum(["OPEN", "ADOPTED", "PARKED", "DROPPED"]),
+});
+
+export const adoptQuestionSchema = z.object({
+  questionId: z.string().min(1),
+  milestoneId: z.string().min(1, "Pick a milestone for the task."),
+  decision: optionalNote,
+});
