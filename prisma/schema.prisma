@@ -86,22 +86,23 @@ enum CommentTarget {
 // ---------- Models ----------
 
 model User {
-  id               String          @id @default(cuid())
-  email            String          @unique
-  passwordHash     String
-  name             String?
-  role             UserRole        @default(STUDENT)
-  avatarUrl        String?
-  timeZone         String?
-  emailVerifiedAt  DateTime?
-  failedLoginCount Int             @default(0)
-  lockedUntil      DateTime?
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String
+  name                String?
+  role                UserRole             @default(STUDENT)
+  avatarUrl           String?
+  timeZone            String?
+  emailVerifiedAt     DateTime?
+  failedLoginCount    Int                  @default(0)
+  lockedUntil         DateTime?
   // Set when the owner marks supervisor comments as read on the dashboard.
-  commentsReadAt   DateTime?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  memberships      ProjectMember[]
-  comments         Comment[]
+  commentsReadAt      DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  memberships         ProjectMember[]
+  comments            Comment[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Project {
@@ -140,28 +141,28 @@ model ProjectMember {
 }
 
 model Milestone {
-  id           String          @id @default(cuid())
-  projectId    String
-  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  name         String
-  status       MilestoneStatus @default(PLANNED)
-  plannedStart DateTime
-  plannedEnd   DateTime
-  actualStart  DateTime?
-  actualEnd    DateTime?
-  commitRange  String?
-  goal         String?
-  scope        String?
+  id               String          @id @default(cuid())
+  projectId        String
+  project          Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name             String
+  status           MilestoneStatus @default(PLANNED)
+  plannedStart     DateTime
+  plannedEnd       DateTime
+  actualStart      DateTime?
+  actualEnd        DateTime?
+  commitRange      String?
+  goal             String?
+  scope            String?
   definitionOfDone String?
-  order        Int             @default(0)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  tasks        Task[]
-  meetings     Meeting[]
-  questions    Question[]
-  review       Review?
-  evidence     Evidence[]
-  deliverables Deliverable[]
+  order            Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  tasks            Task[]
+  meetings         Meeting[]
+  questions        Question[]
+  review           Review?
+  evidence         Evidence[]
+  deliverables     Deliverable[]
 
   @@unique([projectId, order])
   @@index([projectId, status])
@@ -322,4 +323,18 @@ model Invite {
 
   @@index([projectId])
   @@index([email])
+}
+
+// A single-use password reset link. Like invites, the raw token travels in the
+// link only; the database keeps a SHA-256 hash so a leak cannot be replayed.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
