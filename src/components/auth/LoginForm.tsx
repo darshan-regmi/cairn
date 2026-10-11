@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-export function LoginForm() {
+export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -27,7 +27,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/projects");
+    router.push(callbackUrl || "/projects");
     router.refresh();
   }
 

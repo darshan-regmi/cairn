@@ -80,29 +80,39 @@ src/
   app/                  # App Router pages
     (app)/              # protected pages (auth guard + header live here)
       projects/         # project list + create form
-      projects/[projectId]/            # milestone timeline
-      projects/[projectId]/milestones/[milestoneId]  # kanban board
+      projects/[projectId]/            # milestone timeline + supervisors
+      projects/[projectId]/milestones/[milestoneId]  # kanban board + comments
+      supervisor/       # projects you supervise (read-only)
+      supervisor/[projectId]/          # read-only review view + comments
     (auth)/login        # sign-in page
     (auth)/signup       # create-account page
+    (auth)/invite/[token]  # accept a supervisor invitation (public)
     api/auth/[...nextauth]  # Auth.js route handler
   actions/
     auth.ts             # server action: sign-up
     projects.ts         # createProject, importProject, createMilestone, updateMilestoneStatus
     tasks.ts            # saveTask, deleteTask, moveTasks
+    invites.ts          # createInvite, acceptInvite, removeSupervisor, revokeInvite
+    comments.ts         # createComment, updateComment, deleteComment
   components/
     auth/               # client-side sign-in/sign-up forms
     projects/           # create-project + CSV import forms
     timeline/           # add-milestone form, milestone status control
     kanban/             # KanbanBoard (dnd-kit), TaskDialog
+    invites/            # invite-supervisor + accept-invite forms
+    comments/           # CommentSection (thread with edit/delete)
     ProgressBar.tsx     # shared progress bar
     StatusBadge.tsx     # shared status badge
   lib/
+    access.ts           # membership filters + per-project role lookup
     auth.ts             # NextAuth config (Credentials + JWT)
     prisma.ts           # Prisma client singleton
     validation.ts       # Zod schemas
+    invites.ts          # pure invite token / hashing / expiry helpers
+    navigation.ts       # safe same-site callbackUrl helper
     csv-import.ts       # pure GanttProject CSV → project plan parser
     password.ts         # scrypt hashing (node:crypto, no native deps)
-    data.ts             # owner-scoped read queries
+    data.ts             # membership-scoped read queries
     milestone-metrics.ts# pure progress / overdue / days-left helpers
     status.ts           # shared status labels and colours
   types/next-auth.d.ts  # session user.id typing
@@ -119,10 +129,13 @@ tests/                  # Vitest unit tests + DB-backed authorization tests
 - **All mutations are server actions.** One pattern, used everywhere.
   NextAuth's route handler is the only exception (it must be a route).
 - **Every server action re-validates with Zod.**
-- **Every query is scoped to the owner** (`session.user.id`); read helpers
-  return `null` for foreign ids, pages render 404. The read-only supervisor
-  share link (Phase 4) is the only account-less access and is limited to one
-  project.
+- **Every query is scoped through `ProjectMember`.** Reads use `memberWhere`
+  (owner or supervisor); every write action uses `ownerWhere` (owner only).
+  Read helpers return `null` for foreign ids, pages render 404. Supervisors
+  get read-only pages under `/supervisor` and may only add comments.
+- **Supervisor invites are capability links.** The raw token is shown to the
+  student once and stored only as a SHA-256 hash. There is no SMTP dependency:
+  the student copies the link and sends it themselves.
 - Business logic lives in plain functions under `src/lib` so it is testable
   without the database.
 - Dates are date-only values stored as local midnight; progress, overdue, and
@@ -157,4 +170,13 @@ Importing the same title + dates twice for the same user is refused.
   and tests, project goal column + timeline display, owner-scoped import
   server action (single transaction, duplicate guard), and an inline import
   form on the projects page.
-- **Phases 2–4:** meetings, questions, reviews + dashboard, sharing and export.
+- **Data model (done):** access moved from `Project.ownerId` to `ProjectMember`
+  (OWNER / SUPERVISOR) plus `User.role`; added `Invite`, `Comment`, and
+  `MeetingTask`; existing owners and meeting action lines were migrated.
+- **Supervisor invites + comments (done):** the owner creates an invite link on
+  the project page, the invitee accepts it at `/invite/[token]`, supervisors
+  get a read-only `/supervisor` view and can comment on milestones (the owner
+  sees the thread on the board). Remove-supervisor and revoke-invite controls
+  are included.
+- **Phases 2–4:** meetings UI, open questions, reviews + dashboard, sharing and
+  export.

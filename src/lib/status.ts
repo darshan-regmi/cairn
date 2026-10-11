@@ -86,3 +86,25 @@ export const columnDotClass: Record<TaskStatus, string> = {
   BLOCKED: "bg-red-500",
   DONE: "bg-emerald-500",
 };
+
+export const QUESTION_STATUSES = [
+  "OPEN",
+  "ADOPTED",
+  "PARKED",
+  "DROPPED",
+] as const;
+export type QuestionStatus = (typeof QUESTION_STATUSES)[number];
+
+export const questionStatusLabel: Record<QuestionStatus, string> = {
+  OPEN: "Open",
+  ADOPTED: "Adopted",
+  PARKED: "Parked",
+  DROPPED: "Dropped",
+};
+
+export const questionStatusTone: Record<QuestionStatus, StatusTone> = {
+  OPEN: "blue",
+  ADOPTED: "emerald",
+  PARKED: "amber",
+  DROPPED: "zinc",
+};

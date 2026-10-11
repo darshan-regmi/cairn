@@ -1,7 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { findMilestoneForUser } from "@/lib/data";
+import { findMilestoneForUser, listCommentsForTarget } from "@/lib/data";
+import { projectRoleFor } from "@/lib/access";
 import {
   isOverdue,
   daysLeft,
@@ -10,10 +11,28 @@ import {
 import { KanbanBoard, type KanbanCard } from "@/components/kanban/KanbanBoard";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
+  CommentSection,
+  type CommentItem,
+} from "@/components/comments/CommentSection";
+import {
   milestoneStatusLabel,
   milestoneStatusTone,
   type MilestoneStatus,
 } from "@/lib/status";
+
+type CommentRows = Awaited<ReturnType<typeof listCommentsForTarget>>;
+
+function toCommentItems(rows: CommentRows): CommentItem[] {
+  return rows.map((comment) => ({
+    id: comment.id,
+    body: comment.body,
+    createdAt: comment.createdAt.toISOString(),
+    editedAt: comment.editedAt ? comment.editedAt.toISOString() : null,
+    authorId: comment.authorId,
+    authorName: comment.author.name,
+    authorEmail: comment.author.email,
+  }));
+}
 
 function daysLeftLabel(days: number): string {
   if (days === 0) return "ends today";
@@ -34,6 +53,14 @@ export default async function MilestoneKanbanPage({
   const { milestoneId } = await params;
   const milestone = await findMilestoneForUser(milestoneId, session.user.id);
   if (!milestone) notFound();
+
+  // Supervisors read through /supervisor/[projectId], not the editing board.
+  const role = await projectRoleFor(milestone.projectId, session.user.id);
+  if (role === "SUPERVISOR") redirect(`/supervisor/${milestone.projectId}`);
+
+  const comments = toCommentItems(
+    await listCommentsForTarget("MILESTONE", milestone.id),
+  );
 
   const today = new Date();
   const cards: KanbanCard[] = milestone.tasks.map((task) => ({
@@ -108,6 +135,16 @@ export default async function MilestoneKanbanPage({
         milestoneId={milestone.id}
         initialCards={cards}
       />
+
+      <div className="mt-10 max-w-3xl">
+        <CommentSection
+          key={`milestone-${milestone.id}-${comments.map((c) => c.id).join("-")}`}
+          targetType="MILESTONE"
+          targetId={milestone.id}
+          currentUserId={session.user.id}
+          initialComments={comments}
+        />
+      </div>
     </main>
   );
 }

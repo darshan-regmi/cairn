@@ -4,8 +4,12 @@ import { ownerWhere } from "@/lib/access";
 import {
   findMilestoneForUser,
   findProjectForUser,
+  findSupervisorProject,
   findTaskForUser,
+  listCommentsForTarget,
+  listOwnedProjectsForUser,
   listProjectsForUser,
+  listSupervisedProjectsForUser,
 } from "@/lib/data";
 
 /**
@@ -168,6 +172,47 @@ describeDb("DB-backed authorization", () => {
         where: { id: projectId, ...ownerWhere(supervisorId) },
       });
       expect(forSupervisor).toBeNull();
+    });
+  });
+
+  describe("supervisor access", () => {
+    it("lists owned and supervised projects in separate lists", async () => {
+      const ownedByOwner = await listOwnedProjectsForUser(ownerId);
+      expect(ownedByOwner.some((p) => p.id === projectId)).toBe(true);
+      const supervisedByOwner = await listSupervisedProjectsForUser(ownerId);
+      expect(supervisedByOwner.some((p) => p.id === projectId)).toBe(false);
+
+      const ownedBySupervisor = await listOwnedProjectsForUser(supervisorId);
+      expect(ownedBySupervisor.some((p) => p.id === projectId)).toBe(false);
+      const supervisedBySupervisor =
+        await listSupervisedProjectsForUser(supervisorId);
+      expect(supervisedBySupervisor.some((p) => p.id === projectId)).toBe(true);
+    });
+
+    it("opens the read-only view only for supervisors", async () => {
+      const view = await findSupervisorProject(projectId, supervisorId);
+      expect(view).not.toBeNull();
+      expect(view?.milestones.length).toBe(1);
+
+      expect(await findSupervisorProject(projectId, ownerId)).toBeNull();
+      expect(await findSupervisorProject(projectId, intruderId)).toBeNull();
+    });
+
+    it("stores a comment on a milestone and lists it with its author", async () => {
+      await prisma.comment.create({
+        data: {
+          projectId,
+          authorId: supervisorId,
+          targetType: "MILESTONE",
+          targetId: milestoneId,
+          body: "Good progress here — worth a short demo next meeting.",
+        },
+      });
+
+      const comments = await listCommentsForTarget("MILESTONE", milestoneId);
+      expect(comments).toHaveLength(1);
+      expect(comments[0].body).toContain("Good progress here");
+      expect(comments[0].author.email).toContain("supervisor_");
     });
   });
 

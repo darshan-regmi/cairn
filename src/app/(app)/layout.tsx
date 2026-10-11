@@ -27,12 +27,18 @@ export default async function AppLayout({
             >
               FYP Planner
             </Link>
-            <nav aria-label="Primary">
+            <nav aria-label="Primary" className="flex items-center gap-1">
               <Link
                 href="/projects"
                 className="rounded-md px-2 py-1 text-sm text-muted transition-colors hover:bg-accent/10 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               >
                 Projects
+              </Link>
+              <Link
+                href="/supervisor"
+                className="rounded-md px-2 py-1 text-sm text-muted transition-colors hover:bg-accent/10 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Supervised
               </Link>
             </nav>
           </div>

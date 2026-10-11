@@ -8,14 +8,14 @@ import { signUp, type SignUpState } from "@/actions/auth";
 
 const initialState: SignUpState = { success: false };
 
-export function SignUpForm() {
+export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
   const router = useRouter();
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const [state, formAction, pending] = useActionState(signUp, initialState);
 
   // After the account is created, sign the user straight in so they land on
-  // the dashboard without a second login round trip.
+  // the app without a second login round trip.
   useEffect(() => {
     if (!state.success) return;
 
@@ -27,11 +27,11 @@ export function SignUpForm() {
       if (result?.error) {
         router.push("/login?registered=1");
       } else {
-        router.push("/projects");
+        router.push(callbackUrl || "/projects");
         router.refresh();
       }
     });
-  }, [state.success, router]);
+  }, [state.success, router, callbackUrl]);
 
   return (
     <form action={formAction} className="space-y-4">

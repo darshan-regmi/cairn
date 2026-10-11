@@ -129,3 +129,49 @@ export const moveTasksSchema = z.object({
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export type SaveTaskInput = z.infer<typeof saveTaskSchema>;
 export type MoveTasksInput = z.infer<typeof moveTasksSchema>;
+
+// ---------- Invites and comments ----------
+
+export const inviteEmailSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+});
+
+// 48 hex characters: the raw token that generateInviteToken() produces.
+export const inviteTokenSchema = z
+  .string()
+  .trim()
+  .regex(/^[0-9a-f]{48}$/, "This invitation link is not valid.");
+
+export const memberIdsSchema = z.object({
+  projectId: z.string().min(1),
+  userId: z.string().min(1),
+});
+
+export const commentTargets = [
+  "MILESTONE",
+  "TASK",
+  "MEETING",
+  "REVIEW",
+  "QUESTION",
+  "EVIDENCE",
+] as const;
+export type CommentTarget = (typeof commentTargets)[number];
+export const commentTargetSchema = z.enum(commentTargets);
+
+export const createCommentSchema = z.object({
+  targetType: commentTargetSchema,
+  targetId: z.string().min(1),
+  body: z.string().trim().min(1, "Write a comment first.").max(2000),
+});
+
+export const updateCommentSchema = z.object({
+  commentId: z.string().min(1),
+  body: z.string().trim().min(1, "Write a comment first.").max(2000),
+});
+
+export const deleteCommentSchema = z.object({
+  commentId: z.string().min(1),
+});
+
+export type CreateInviteInput = z.infer<typeof inviteEmailSchema>;
+export type CreateCommentInput = z.infer<typeof createCommentSchema>;

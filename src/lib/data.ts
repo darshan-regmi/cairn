@@ -1,9 +1,28 @@
 import { prisma } from "@/lib/prisma";
-import { memberWhere } from "@/lib/access";
+import { memberWhere, ownerWhere } from "@/lib/access";
+import type { CommentTarget } from "@/lib/validation";
 
 // All read helpers take the signed-in user id and return only rows from
 // projects the user is a member of (owner or supervisor). Server actions and
 // pages build on these, so access is enforced in one place.
+
+/** Projects the user owns (student workspace list). */
+export function listOwnedProjectsForUser(userId: string) {
+  return prisma.project.findMany({
+    where: ownerWhere(userId),
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { milestones: true } } },
+  });
+}
+
+/** Projects the user supervises (supervisor home list). */
+export function listSupervisedProjectsForUser(userId: string) {
+  return prisma.project.findMany({
+    where: { members: { some: { userId, role: "SUPERVISOR" } } },
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { milestones: true } } },
+  });
+}
 
 export function listProjectsForUser(userId: string) {
   return prisma.project.findMany({
@@ -44,5 +63,51 @@ export function findTaskForUser(taskId: string, userId: string) {
   return prisma.task.findFirst({
     where: { id: taskId, milestone: { project: memberWhere(userId) } },
     include: { milestone: true },
+  });
+}
+
+/** Read-only supervisor view of one project: milestones, meetings, questions. */
+export function findSupervisorProject(projectId: string, userId: string) {
+  return prisma.project.findFirst({
+    where: { id: projectId, members: { some: { userId, role: "SUPERVISOR" } } },
+    include: {
+      milestones: {
+        orderBy: [{ order: "asc" }, { plannedStart: "asc" }],
+        include: { tasks: { select: { status: true } } },
+      },
+      meetings: {
+        orderBy: { date: "desc" },
+        include: { actionItems: { orderBy: { createdAt: "asc" } } },
+      },
+      questions: {
+        orderBy: { raisedAt: "desc" },
+      },
+    },
+  });
+}
+
+/** The supervisor members of a project (owner page renders them with Remove). */
+export function listSupervisorsForProject(projectId: string) {
+  return prisma.projectMember.findMany({
+    where: { projectId, role: "SUPERVISOR" },
+    include: { user: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+/** Unused invites for a project (owner page renders them with Revoke). */
+export function listPendingInvitesForProject(projectId: string) {
+  return prisma.invite.findMany({
+    where: { projectId, acceptedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+/** Comments on one item, oldest first, with the author included. */
+export function listCommentsForTarget(targetType: CommentTarget, targetId: string) {
+  return prisma.comment.findMany({
+    where: { targetType, targetId },
+    include: { author: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
   });
 }

@@ -1,17 +1,19 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { safeCallbackUrl } from "@/lib/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ registered?: string }>;
+  searchParams: Promise<{ registered?: string; callbackUrl?: string }>;
 }) {
   const session = await auth();
   if (session?.user) redirect("/projects");
 
-  const { registered } = await searchParams;
+  const { registered, callbackUrl } = await searchParams;
+  const callback = safeCallbackUrl(callbackUrl);
 
   return (
     <div className="space-y-6">
@@ -28,12 +30,16 @@ export default async function LoginPage({
         </p>
       )}
 
-      <LoginForm />
+      <LoginForm callbackUrl={callback} />
 
       <p className="text-center text-sm text-muted">
         No account yet?{" "}
         <Link
-          href="/signup"
+          href={
+            callback
+              ? `/signup?callbackUrl=${encodeURIComponent(callback)}`
+              : "/signup"
+          }
           className="rounded text-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Create one

@@ -2,6 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { findProjectForUser } from "@/lib/data";
+import { listPendingInvitesForProject, listSupervisorsForProject } from "@/lib/data";
+import { projectRoleFor } from "@/lib/access";
+import { removeSupervisorAction, revokeInviteAction } from "@/actions/invites";
 import {
   daysLeft,
   isCurrent,
@@ -17,6 +20,7 @@ import {
 } from "@/lib/status";
 import { AddMilestoneForm } from "@/components/timeline/AddMilestoneForm";
 import { MilestoneStatusControl } from "@/components/timeline/MilestoneStatusControl";
+import { InviteSupervisorForm } from "@/components/invites/InviteSupervisorForm";
 
 function daysLeftLabel(days: number): string {
   if (days === 0) return "Ends today";
@@ -37,6 +41,15 @@ export default async function ProjectTimelinePage({
   const { projectId } = await params;
   const project = await findProjectForUser(projectId, session.user.id);
   if (!project) notFound();
+
+  // Supervisors get the read-only page, never the editing one.
+  const role = await projectRoleFor(project.id, session.user.id);
+  if (role === "SUPERVISOR") redirect(`/supervisor/${project.id}`);
+
+  const [supervisors, pendingInvites] = await Promise.all([
+    listSupervisorsForProject(project.id),
+    listPendingInvitesForProject(project.id),
+  ]);
 
   const today = new Date();
   const milestones = project.milestones.map((milestone, index) => {
@@ -75,6 +88,73 @@ export default async function ProjectTimelinePage({
         </div>
         <AddMilestoneForm projectId={project.id} />
       </header>
+
+      <section className="mt-8 rounded-lg border border-edge p-5">
+        <h2 className="text-lg font-medium">Supervisors</h2>
+        <p className="mt-1 text-sm text-muted">
+          Invited supervisors can read this project and leave comments. They
+          cannot change anything.
+        </p>
+
+        <div className="mt-4">
+          <InviteSupervisorForm projectId={project.id} />
+        </div>
+
+        {supervisors.length > 0 && (
+          <ul className="mt-4 space-y-2">
+            {supervisors.map((member) => (
+              <li
+                key={member.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-edge px-3 py-2"
+              >
+                <span className="text-sm">
+                  {member.user.name || member.user.email}
+                  {member.user.name && (
+                    <span className="text-muted"> · {member.user.email}</span>
+                  )}
+                </span>
+                <form action={removeSupervisorAction}>
+                  <input type="hidden" name="projectId" value={project.id} />
+                  <input type="hidden" name="userId" value={member.user.id} />
+                  <button
+                    type="submit"
+                    className="rounded px-1 text-xs text-muted transition-colors hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent dark:hover:text-red-400"
+                  >
+                    Remove
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {pendingInvites.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-sm font-medium">Pending invites</h3>
+            <ul className="mt-2 space-y-2">
+              {pendingInvites.map((invite) => (
+                <li
+                  key={invite.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed border-edge px-3 py-2"
+                >
+                  <span className="text-sm text-muted">
+                    {invite.email} · expires {toDateInput(invite.expiresAt)}
+                  </span>
+                  <form action={revokeInviteAction}>
+                    <input type="hidden" name="inviteId" value={invite.id} />
+                    <button
+                      type="submit"
+                      className="rounded px-1 text-xs text-muted transition-colors hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent dark:hover:text-red-400"
+                    >
+                      Revoke
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
 
       {milestones.length === 0 ? (
         <section className="mt-16 rounded-lg border border-dashed border-edge p-10 text-center">
