@@ -150,6 +150,58 @@ export default async function SupervisorProjectPage({
                   <p className="mt-2 text-sm text-muted">{milestone.goal}</p>
                 )}
 
+                {milestone.scope && (
+                  <p className="mt-2 text-sm text-muted">
+                    <span className="font-medium">Scope: </span>
+                    {milestone.scope}
+                  </p>
+                )}
+                {milestone.definitionOfDone && (
+                  <p className="mt-1 text-sm text-muted">
+                    <span className="font-medium">Done when: </span>
+                    {milestone.definitionOfDone}
+                  </p>
+                )}
+
+                {milestone.deliverables.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-muted">
+                      Deliverables
+                    </p>
+                    <ul className="mt-1 space-y-1 text-sm">
+                      {milestone.deliverables.map((deliverable) => (
+                        <li key={deliverable.id}>
+                          <span className="sr-only">
+                            {deliverable.doneAt ? "Done: " : "Not done: "}
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className={
+                              deliverable.doneAt
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-muted"
+                            }
+                          >
+                            {deliverable.doneAt ? "✓ " : "○ "}
+                          </span>
+                          {deliverable.url ? (
+                            <a
+                              href={deliverable.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="break-all text-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            >
+                              {deliverable.title}
+                            </a>
+                          ) : (
+                            <span>{deliverable.title}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="mt-3 flex items-center gap-3">
                   <ProgressBar value={progress.progressPercent} />
                   <span className="shrink-0 text-xs text-muted">

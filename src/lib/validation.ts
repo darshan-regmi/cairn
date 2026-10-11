@@ -347,3 +347,46 @@ export const updateEvidenceSchema = z.object({
 export const deleteEvidenceSchema = z.object({
   evidenceId: z.string().min(1, "Missing evidence."),
 });
+
+// ---------- Milestone details and deliverables ----------
+
+// Scope and definition of done are the two free-text fields a milestone carries
+// beyond its goal. Saving either (or both) upserts onto the milestone.
+export const saveMilestoneDetailsSchema = z.object({
+  milestoneId: z.string().min(1, "Missing milestone."),
+  scope: optionalNote,
+  definitionOfDone: optionalNote,
+});
+
+// A deliverable link follows the same rule as evidence: blank stays null, and
+// anything else must be http(s) so it can never become a javascript: link.
+const optionalDeliverableUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .nullish()
+  .transform((value) => (value ? value : null))
+  .refine((value) => value === null || /^https?:\/\/\S+$/i.test(value), {
+    message: "Enter a link starting with http:// or https://.",
+  });
+
+export const createDeliverableSchema = z.object({
+  milestoneId: z.string().min(1, "Missing milestone."),
+  title: z.string().trim().min(1, "Give the deliverable a title.").max(200),
+  url: optionalDeliverableUrl,
+});
+
+export const updateDeliverableSchema = z.object({
+  deliverableId: z.string().min(1, "Missing deliverable."),
+  title: z.string().trim().min(1, "Give the deliverable a title.").max(200),
+  url: optionalDeliverableUrl,
+});
+
+export const toggleDeliverableSchema = z.object({
+  deliverableId: z.string().min(1, "Missing deliverable."),
+  done: z.enum(["true", "false"]),
+});
+
+export const deleteDeliverableSchema = z.object({
+  deliverableId: z.string().min(1, "Missing deliverable."),
+});

@@ -149,6 +149,8 @@ model Milestone {
   actualEnd    DateTime?
   commitRange  String?
   goal         String?
+  scope        String?
+  definitionOfDone String?
   order        Int             @default(0)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
@@ -157,6 +159,7 @@ model Milestone {
   questions    Question[]
   review       Review?
   evidence     Evidence[]
+  deliverables Deliverable[]
 
   @@unique([projectId, order])
   @@index([projectId, status])
@@ -266,6 +269,22 @@ model Evidence {
   whatItProves String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+
+  @@index([milestoneId])
+}
+
+// A concrete output a milestone should produce. doneAt is set by ticking it off;
+// url is an optional link to where the deliverable lives.
+model Deliverable {
+  id          String    @id @default(cuid())
+  milestoneId String
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  title       String
+  url         String?
+  doneAt      DateTime?
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([milestoneId])
 }

@@ -14,6 +14,8 @@ import {
 } from "@/lib/milestone-metrics";
 import { KanbanBoard, type KanbanCard } from "@/components/kanban/KanbanBoard";
 import { StatusBadge } from "@/components/StatusBadge";
+import { MilestoneDetailsSection } from "@/components/milestone/MilestoneDetailsSection";
+import { DeliverablesSection } from "@/components/deliverables/DeliverablesSection";
 import { CommentSection } from "@/components/comments/CommentSection";
 import { groupCommentsByTarget, toCommentItems } from "@/lib/comments";
 import { ReviewCard } from "@/components/reviews/ReviewCard";
@@ -153,12 +155,28 @@ export default async function MilestoneKanbanPage({
         )}
       </header>
 
+      <MilestoneDetailsSection
+        milestoneId={milestone.id}
+        scope={milestone.scope}
+        definitionOfDone={milestone.definitionOfDone}
+      />
+
       <KanbanBoard
         key={boardKey}
         milestoneId={milestone.id}
         initialCards={cards}
         comments={taskComments}
         currentUserId={session.user.id}
+      />
+
+      <DeliverablesSection
+        milestoneId={milestone.id}
+        items={milestone.deliverables.map((item) => ({
+          id: item.id,
+          title: item.title,
+          url: item.url,
+          done: item.doneAt !== null,
+        }))}
       />
 
       <EvidenceSection

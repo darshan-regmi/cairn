@@ -422,6 +422,48 @@ describeDb("DB-backed authorization", () => {
     });
   });
 
+  describe("deliverables and milestone details", () => {
+    it("carries scope and definition of done on the milestone", async () => {
+      await prisma.milestone.update({
+        where: { id: milestoneId },
+        data: {
+          scope: "Upload only",
+          definitionOfDone: "A file uploads to disk.",
+        },
+      });
+
+      const view = await findMilestoneForUser(milestoneId, ownerId);
+      expect(view?.scope).toBe("Upload only");
+      expect(view?.definitionOfDone).toBe("A file uploads to disk.");
+    });
+
+    it("returns deliverables in order, with their done state", async () => {
+      await prisma.deliverable.createMany({
+        data: [
+          { milestoneId, title: "Working upload page", order: 0 },
+          {
+            milestoneId,
+            title: "Benchmark table",
+            order: 1,
+            doneAt: new Date(2026, 2, 1),
+          },
+        ],
+      });
+
+      const view = await findMilestoneForUser(milestoneId, ownerId);
+      expect(view?.deliverables.map((deliverable) => deliverable.title)).toEqual(
+        ["Working upload page", "Benchmark table"],
+      );
+      expect(view?.deliverables[1]?.doneAt).toBeInstanceOf(Date);
+    });
+
+    it("shows deliverables to a supervisor through the supervised project", async () => {
+      const view = await findSupervisorProject(projectId, supervisorId);
+      const milestone = view?.milestones.find((m) => m.id === milestoneId);
+      expect(milestone?.deliverables).toHaveLength(2);
+    });
+  });
+
   describe("comments for many targets", () => {
     it("returns comments for the given targets, filtered by type", async () => {
       await prisma.comment.createMany({

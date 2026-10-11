@@ -105,6 +105,10 @@ export async function findSharedProject(token: string, now = new Date()) {
         orderBy: [{ order: "asc" }, { plannedStart: "asc" }],
         include: {
           review: { select: { verdict: true } },
+          deliverables: {
+            orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+            select: { id: true, title: true, url: true, doneAt: true },
+          },
           tasks: {
             orderBy: [{ status: "asc" }, { order: "asc" }],
             select: {
@@ -142,6 +146,7 @@ export function findMilestoneForUser(milestoneId: string, userId: string) {
       project: true,
       review: true,
       evidence: { orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
+      deliverables: { orderBy: [{ order: "asc" }, { createdAt: "asc" }] },
       meetings: {
         orderBy: { date: "desc" },
         include: { actionItems: { orderBy: { createdAt: "asc" } } },
@@ -171,6 +176,7 @@ export function findSupervisorProject(projectId: string, userId: string) {
         include: {
           review: true,
           evidence: { orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
+          deliverables: { orderBy: [{ order: "asc" }, { createdAt: "asc" }] },
           tasks: { select: { status: true } },
         },
       },

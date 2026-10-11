@@ -11,6 +11,7 @@ import {
   createProjectSchema,
   importProjectSchema,
   milestoneStatusSchema,
+  saveMilestoneDetailsSchema,
 } from "@/lib/validation";
 import { parseProjectCsv } from "@/lib/csv-import";
 
@@ -210,4 +211,47 @@ export async function updateMilestoneStatusAction(formData: FormData) {
   });
 
   revalidatePath(`/projects/${milestone.projectId}`);
+}
+
+/** Save the milestone's scope and definition of done (either may be blank). */
+export async function saveMilestoneDetailsAction(
+  _prev: ProjectActionState,
+  formData: FormData,
+): Promise<ProjectActionState> {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "Not signed in." };
+
+  const parsed = saveMilestoneDetailsSchema.safeParse({
+    milestoneId: formData.get("milestoneId"),
+    scope: formData.get("scope"),
+    definitionOfDone: formData.get("definitionOfDone"),
+  });
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+
+  const milestone = await prisma.milestone.findFirst({
+    where: {
+      id: parsed.data.milestoneId,
+      project: ownerWhere(session.user.id),
+    },
+    select: { id: true, projectId: true },
+  });
+  if (!milestone) return { success: false, error: "Milestone not found." };
+
+  await prisma.milestone.update({
+    where: { id: milestone.id },
+    data: {
+      scope: parsed.data.scope,
+      definitionOfDone: parsed.data.definitionOfDone,
+    },
+  });
+
+  revalidatePath(`/projects/${milestone.projectId}`);
+  revalidatePath(`/projects/${milestone.projectId}/milestones/${milestone.id}`);
+  revalidatePath(`/supervisor/${milestone.projectId}`);
+  return { success: true };
 }
