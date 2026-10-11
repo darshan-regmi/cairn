@@ -170,3 +170,205 @@ describe("summarizeDashboard", () => {
     });
   });
 });
+
+describe("summarizeDashboard extras", () => {
+  it("lists tasks due today or within the next week, skipping done and distant ones", () => {
+    const summary = summarizeDashboard(
+      [
+        project("a", [
+          milestone("a1", new Date(2026, 6, 1), [
+            task("today", { due: new Date(2026, 5, 15) }),
+            task("soon", { due: new Date(2026, 5, 22) }),
+            task("later", { due: new Date(2026, 5, 25) }),
+            task("done", { due: new Date(2026, 5, 16), status: "DONE" }),
+            task("late", { due: new Date(2026, 5, 1) }),
+            task("undated"),
+          ]),
+        ]),
+      ],
+      TODAY,
+    );
+
+    expect(summary.dueSoon.map((t) => t.id)).toEqual(["today", "soon"]);
+    expect(summary.dueSoon[0].daysUntilDue).toBe(0);
+    expect(summary.dueSoon[1].daysUntilDue).toBe(7);
+  });
+
+  it("collects blocked tasks with their context", () => {
+    const summary = summarizeDashboard(
+      [
+        project("a", [
+          milestone("a1", new Date(2026, 6, 1), [
+            task("b1", { title: "Stuck", status: "BLOCKED", priority: "HIGH" }),
+            task("t1"),
+          ]),
+        ]),
+      ],
+      TODAY,
+    );
+
+    expect(summary.blocked).toHaveLength(1);
+    expect(summary.blocked[0]).toMatchObject({
+      id: "b1",
+      title: "Stuck",
+      priority: "HIGH",
+      projectId: "a",
+      milestoneName: "Milestone a1",
+    });
+  });
+
+  it("preps the latest meeting per project from its action items and problems", () => {
+    const summary = summarizeDashboard(
+      [
+        {
+          ...project("a", []),
+          meetings: [
+            {
+              id: "newer",
+              date: new Date(2026, 5, 10),
+              nextMeetingDate: new Date(2026, 5, 24),
+              problems: "Uploads time out.",
+              actionItems: [
+                {
+                  id: "i1",
+                  text: "Investigate timeouts",
+                  task: { id: "t1", status: "IN_PROGRESS" },
+                },
+                { id: "i2", text: "Write notes", task: null },
+              ],
+            },
+            {
+              id: "older",
+              date: new Date(2026, 4, 1),
+              nextMeetingDate: null,
+              problems: "Old problem",
+              actionItems: [],
+            },
+          ],
+        },
+      ],
+      TODAY,
+    );
+
+    expect(summary.meetingPrep).toHaveLength(1);
+    expect(summary.meetingPrep[0]).toMatchObject({
+      id: "newer",
+      problems: "Uploads time out.",
+    });
+    expect(summary.meetingPrep[0].actionItems).toEqual([
+      { id: "i1", text: "Investigate timeouts", taskStatus: "IN_PROGRESS" },
+      { id: "i2", text: "Write notes", taskStatus: null },
+    ]);
+  });
+
+  it("skips a meeting with no problems and no action items", () => {
+    const summary = summarizeDashboard(
+      [
+        {
+          ...project("a", []),
+          meetings: [
+            {
+              id: "m1",
+              date: new Date(2026, 5, 10),
+              nextMeetingDate: null,
+              problems: null,
+              actionItems: [],
+            },
+          ],
+        },
+      ],
+      TODAY,
+    );
+
+    expect(summary.meetingPrep).toEqual([]);
+  });
+
+  it("lists open questions with their project and milestone", () => {
+    const summary = summarizeDashboard(
+      [
+        {
+          ...project("a", []),
+          questions: [
+            {
+              id: "q1",
+              title: "Which database?",
+              raisedAt: new Date(2026, 5, 12),
+              milestoneId: "a1",
+              milestone: { name: "Milestone a1" },
+            },
+          ],
+        },
+      ],
+      TODAY,
+    );
+
+    expect(summary.openQuestions).toHaveLength(1);
+    expect(summary.openQuestions[0]).toMatchObject({
+      id: "q1",
+      title: "Which database?",
+      projectTitle: "Project a",
+      milestoneName: "Milestone a1",
+    });
+  });
+
+  it("treats every comment as unread when the watermark is null", () => {
+    const summary = summarizeDashboard(
+      [
+        {
+          ...project("a", []),
+          comments: [
+            {
+              id: "c1",
+              body: "Looks good",
+              createdAt: new Date(2026, 5, 10),
+              targetType: "MILESTONE",
+              targetId: "a1",
+              author: { name: "Sam", email: "sam@example.com" },
+            },
+          ],
+        },
+      ],
+      TODAY,
+      undefined,
+      null,
+    );
+
+    expect(summary.unreadComments).toHaveLength(1);
+    expect(summary.unreadComments[0].link).toBe("/projects/a/milestones/a1");
+    expect(summary.unreadComments[0].authorName).toBe("Sam");
+  });
+
+  it("hides comments at or before the read watermark", () => {
+    const summary = summarizeDashboard(
+      [
+        {
+          ...project("a", []),
+          comments: [
+            {
+              id: "seen",
+              body: "Already read",
+              createdAt: new Date(2026, 5, 10),
+              targetType: "PROJECT",
+              targetId: "a",
+              author: { name: null, email: "sam@example.com" },
+            },
+            {
+              id: "fresh",
+              body: "Brand new",
+              createdAt: new Date(2026, 5, 20),
+              targetType: "MEETING",
+              targetId: "m1",
+              author: { name: "Sam", email: "sam@example.com" },
+            },
+          ],
+        },
+      ],
+      TODAY,
+      undefined,
+      new Date(2026, 5, 15),
+    );
+
+    expect(summary.unreadComments.map((c) => c.id)).toEqual(["fresh"]);
+    expect(summary.unreadComments[0].link).toBe("/projects/a/meetings");
+  });
+});

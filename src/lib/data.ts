@@ -40,7 +40,56 @@ export function findDashboardForUser(userId: string) {
           },
         },
       },
+      meetings: {
+        orderBy: { date: "desc" },
+        select: {
+          id: true,
+          date: true,
+          nextMeetingDate: true,
+          itemsDiscussed: true,
+          problems: true,
+          actionItems: {
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              text: true,
+              task: { select: { id: true, status: true } },
+            },
+          },
+        },
+      },
+      questions: {
+        where: { status: "OPEN" },
+        orderBy: { raisedAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          raisedAt: true,
+          milestoneId: true,
+          milestone: { select: { name: true } },
+        },
+      },
+      comments: {
+        where: { authorId: { not: userId } },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          body: true,
+          createdAt: true,
+          targetType: true,
+          targetId: true,
+          author: { select: { name: true, email: true } },
+        },
+      },
     },
+  });
+}
+
+/** The owner's "supervisor comments read" watermark, or null if never read. */
+export function findCommentsReadAt(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { commentsReadAt: true },
   });
 }
 

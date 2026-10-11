@@ -96,6 +96,8 @@ model User {
   emailVerifiedAt  DateTime?
   failedLoginCount Int             @default(0)
   lockedUntil      DateTime?
+  // Set when the owner marks supervisor comments as read on the dashboard.
+  commentsReadAt   DateTime?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   memberships      ProjectMember[]
