@@ -109,8 +109,8 @@ export default async function DocsPage() {
 
       <Section id="dashboard" title="The dashboard">
         <p>
-          The dashboard is your starting point. It shows every project you
-          belong to with a progress bar, and calls out:
+          The dashboard is your starting point. It shows every project you own
+          with a progress bar, and calls out:
         </p>
         <ul className="list-disc space-y-1 pl-5">
           <li>work that is behind schedule — overdue and blocked tasks;</li>
@@ -120,6 +120,12 @@ export default async function DocsPage() {
           <li>questions still waiting on a decision; and</li>
           <li>new comments from your supervisor, which you can mark as read.</li>
         </ul>
+        <p>
+          Every project card has an <strong>Archive</strong> action. Archiving
+          hides a project from your dashboard and pauses its share link without
+          deleting anything; archived projects move to their own list, where you
+          can restore them.
+        </p>
       </Section>
 
       <Section id="timeline" title="Milestones and the timeline">

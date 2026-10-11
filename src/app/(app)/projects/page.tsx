@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import {
   findCommentsReadAt,
   findDashboardForUser,
+  listArchivedProjectsForUser,
   listSupervisedProjectsForUser,
 } from "@/lib/data";
 import { summarizeDashboard } from "@/lib/dashboard";
@@ -21,6 +22,10 @@ import {
 } from "@/lib/status";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
 import { ImportCsvForm } from "@/components/projects/ImportCsvForm";
+import {
+  ArchiveProjectButton,
+  RestoreProjectButton,
+} from "@/components/projects/ProjectArchiveControls";
 
 function daysUntilLabel(days: number): string {
   if (days === 0) return "Ends today";
@@ -60,10 +65,11 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const [projects, supervised, readState] = await Promise.all([
+  const [projects, supervised, readState, archived] = await Promise.all([
     findDashboardForUser(session.user.id),
     listSupervisedProjectsForUser(session.user.id),
     findCommentsReadAt(session.user.id),
+    listArchivedProjectsForUser(session.user.id),
   ]);
 
   const dashboard = summarizeDashboard(
@@ -418,10 +424,13 @@ export default async function DashboardPage() {
         ) : (
           <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {dashboard.projects.map((project) => (
-              <li key={project.id}>
+              <li
+                key={project.id}
+                className="group flex flex-col rounded-lg border border-edge transition-colors hover:border-accent/50 hover:bg-accent/5"
+              >
                 <Link
                   href={`/projects/${project.id}`}
-                  className="group block rounded-lg border border-edge p-5 transition-colors hover:border-accent/50 hover:bg-accent/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="block flex-1 rounded-t-lg p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   <h3 className="font-medium transition-colors group-hover:text-accent">
                     {project.title}
@@ -441,11 +450,55 @@ export default async function DashboardPage() {
                     {project.milestoneCount === 1 ? "milestone" : "milestones"}
                   </p>
                 </Link>
+                <div className="border-t border-edge px-5 py-2">
+                  <ArchiveProjectButton
+                    projectId={project.id}
+                    className="rounded text-xs text-muted transition-colors hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent dark:hover:text-red-400"
+                  />
+                </div>
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      {archived.length > 0 && (
+        <section aria-labelledby="archived-heading" className="mt-12">
+          <h2 id="archived-heading" className="text-lg font-medium">
+            Archived projects
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Hidden from your dashboard and not shared. Restore one to bring it
+            back.
+          </p>
+          <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {archived.map((project) => (
+              <li
+                key={project.id}
+                className="flex flex-col rounded-lg border border-dashed border-edge p-5"
+              >
+                <Link
+                  href={`/projects/${project.id}`}
+                  className="font-medium transition-colors hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                >
+                  {project.title}
+                </Link>
+                <p className="mt-2 text-sm text-muted">
+                  {toDateInput(project.startDate)} →{" "}
+                  {toDateInput(project.endDate)}
+                </p>
+                <p className="mt-2 text-xs text-muted">
+                  {project._count.milestones}{" "}
+                  {project._count.milestones === 1 ? "milestone" : "milestones"}
+                </p>
+                <div className="mt-3">
+                  <RestoreProjectButton projectId={project.id} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {supervised.length > 0 && (
         <p className="mt-10 text-sm text-muted">

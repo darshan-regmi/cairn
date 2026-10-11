@@ -11,6 +11,7 @@ import {
   createProjectSchema,
   importProjectSchema,
   milestoneStatusSchema,
+  projectIdSchema,
   rescheduleMilestoneSchema,
   saveMilestoneDetailsSchema,
 } from "@/lib/validation";
@@ -356,4 +357,59 @@ export async function rescheduleMilestoneAction(
   revalidatePath(`/projects/${milestone.projectId}/milestones/${milestone.id}`);
   revalidatePath(`/supervisor/${milestone.projectId}`);
   return { success: true };
+}
+
+/**
+ * Archive a project: it drops off the dashboard, member lists and public share
+ * link, but nothing is deleted and the owner can restore it at any time.
+ */
+export async function archiveProjectAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const parsed = projectIdSchema.safeParse({
+    projectId: formData.get("projectId"),
+  });
+  if (!parsed.success) return;
+
+  const project = await prisma.project.findFirst({
+    where: { id: parsed.data.projectId, ...ownerWhere(session.user.id) },
+    select: { id: true },
+  });
+  if (!project) return;
+
+  await prisma.project.update({
+    where: { id: project.id },
+    data: { archivedAt: new Date() },
+  });
+
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${project.id}`);
+  revalidatePath(`/supervisor/${project.id}`);
+}
+
+/** Bring an archived project back to the dashboard. Owner only. */
+export async function restoreProjectAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const parsed = projectIdSchema.safeParse({
+    projectId: formData.get("projectId"),
+  });
+  if (!parsed.success) return;
+
+  const project = await prisma.project.findFirst({
+    where: { id: parsed.data.projectId, ...ownerWhere(session.user.id) },
+    select: { id: true },
+  });
+  if (!project) return;
+
+  await prisma.project.update({
+    where: { id: project.id },
+    data: { archivedAt: null },
+  });
+
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${project.id}`);
+  revalidatePath(`/supervisor/${project.id}`);
 }

@@ -10,7 +10,7 @@ import type { CommentTarget } from "@/lib/validation";
 /** Projects the user owns (student workspace list). */
 export function listOwnedProjectsForUser(userId: string) {
   return prisma.project.findMany({
-    where: ownerWhere(userId),
+    where: { ...ownerWhere(userId), archivedAt: null },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { milestones: true } } },
   });
@@ -23,7 +23,7 @@ export function listOwnedProjectsForUser(userId: string) {
  */
 export function findDashboardForUser(userId: string) {
   return prisma.project.findMany({
-    where: ownerWhere(userId),
+    where: { ...ownerWhere(userId), archivedAt: null },
     orderBy: { createdAt: "desc" },
     include: {
       milestones: {
@@ -105,10 +105,22 @@ export async function projectExists(projectId: string): Promise<boolean> {
   return project !== null;
 }
 
+/** Projects the user owns but has archived (hidden from the dashboard). */
+export function listArchivedProjectsForUser(userId: string) {
+  return prisma.project.findMany({
+    where: { ...ownerWhere(userId), archivedAt: { not: null } },
+    orderBy: { archivedAt: "desc" },
+    include: { _count: { select: { milestones: true } } },
+  });
+}
+
 /** Projects the user supervises (supervisor home list). */
 export function listSupervisedProjectsForUser(userId: string) {
   return prisma.project.findMany({
-    where: { members: { some: { userId, role: "SUPERVISOR" } } },
+    where: {
+      members: { some: { userId, role: "SUPERVISOR" } },
+      archivedAt: null,
+    },
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { milestones: true } },
@@ -129,7 +141,7 @@ export function listSupervisedProjectsForUser(userId: string) {
 
 export function listProjectsForUser(userId: string) {
   return prisma.project.findMany({
-    where: memberWhere(userId),
+    where: { ...memberWhere(userId), archivedAt: null },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { milestones: true } } },
   });
@@ -155,8 +167,9 @@ export function findProjectForUser(projectId: string, userId: string) {
 /**
  * A project opened through its public share link. This is deliberately the one
  * read helper not scoped through ProjectMember: the unguessable token is the
- * capability, and an expired or revoked link returns null. Only the fields the
- * read-only page draws are selected, so owner-only notes are never exposed.
+ * capability, and an expired, revoked or archived link returns null. Only the
+ * fields the read-only page draws are selected, so owner-only notes are never
+ * exposed.
  */
 export async function findSharedProject(token: string, now = new Date()) {
   const project = await prisma.project.findUnique({
@@ -195,7 +208,8 @@ export async function findSharedProject(token: string, now = new Date()) {
       },
     },
   });
-  if (!project || !isShareActive(project, now)) return null;
+  if (!project || project.archivedAt) return null;
+  if (!isShareActive(project, now)) return null;
   return project;
 }
 

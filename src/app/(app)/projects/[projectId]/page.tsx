@@ -30,6 +30,10 @@ import {
 } from "@/components/timeline/MilestoneControls";
 import { InviteSupervisorForm } from "@/components/invites/InviteSupervisorForm";
 import { ShareLinkPanel } from "@/components/share/ShareLinkPanel";
+import {
+  ArchiveProjectButton,
+  RestoreProjectButton,
+} from "@/components/projects/ProjectArchiveControls";
 
 function daysLeftLabel(days: number): string {
   if (days === 0) return "Ends today";
@@ -131,6 +135,18 @@ export default async function ProjectTimelinePage({
         <AddMilestoneForm projectId={project.id} />
       </header>
 
+      {project.archivedAt && (
+        <section
+          role="status"
+          className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent/5 p-4"
+        >
+          <p className="text-sm">
+            Archived — hidden from your dashboard, and its share link is paused.
+          </p>
+          <RestoreProjectButton projectId={project.id} />
+        </section>
+      )}
+
       <section className="mt-8 rounded-lg border border-edge p-5">
         <h2 className="text-lg font-medium">Supervisors</h2>
         <p className="mt-1 text-sm text-muted">
@@ -198,20 +214,22 @@ export default async function ProjectTimelinePage({
         )}
       </section>
 
-      <div className="mt-8">
-        <ShareLinkPanel
-          projectId={project.id}
-          token={project.shareToken}
-          url={shareUrl}
-          expiresAt={
-            project.shareExpiresAt ? toDateInput(project.shareExpiresAt) : null
-          }
-          expired={
-            project.shareExpiresAt !== null &&
-            project.shareExpiresAt.getTime() <= today.getTime()
-          }
-        />
-      </div>
+      {!project.archivedAt && (
+        <div className="mt-8">
+          <ShareLinkPanel
+            projectId={project.id}
+            token={project.shareToken}
+            url={shareUrl}
+            expiresAt={
+              project.shareExpiresAt ? toDateInput(project.shareExpiresAt) : null
+            }
+            expired={
+              project.shareExpiresAt !== null &&
+              project.shareExpiresAt.getTime() <= today.getTime()
+            }
+          />
+        </div>
+      )}
 
       {milestones.length === 0 ? (
         <section className="mt-16 rounded-lg border border-dashed border-edge p-10 text-center">
@@ -321,6 +339,27 @@ export default async function ProjectTimelinePage({
           ))}
         </ol>
       )}
+
+      <section
+        aria-labelledby="manage-heading"
+        className="mt-16 rounded-lg border border-edge p-5"
+      >
+        <h2 id="manage-heading" className="text-lg font-medium">
+          Manage project
+        </h2>
+        <p className="mt-1 max-w-xl text-sm text-muted">
+          {project.archivedAt
+            ? "Restore this project to bring it back to your dashboard and re-enable its share link."
+            : "Archiving hides this project from your dashboard and pauses its share link. Nothing is deleted, and you can restore it at any time."}
+        </p>
+        <div className="mt-3">
+          {project.archivedAt ? (
+            <RestoreProjectButton projectId={project.id} />
+          ) : (
+            <ArchiveProjectButton projectId={project.id} />
+          )}
+        </div>
+      </section>
     </main>
   );
 }

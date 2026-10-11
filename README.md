@@ -38,7 +38,7 @@ cp .env.example .env
 # 3. Install dependencies (generates the Prisma client automatically)
 npm install
 
-# 4. Apply migrations and seed a demo project
+# 4. Apply migrations and seed a login account
 npm run db:migrate   # first run: applies the init migration
 npm run db:seed
 
@@ -53,10 +53,9 @@ email:    demo@example.com
 password: demo1234
 ```
 
-The seed creates one sample project with 7 milestones (dates relative to the
-day you seeded), 17 tasks in M1 across all statuses (including a blocked and
-an overdue one), two supervisor meetings (one with a task already converted),
-and three open questions (open, parked, and dropped).
+The seed only creates the login account above — it adds no projects, so a
+fresh database starts empty. Create your first project from the dashboard, or
+import one from a CSV.
 
 ## Useful commands
 
@@ -70,7 +69,7 @@ and three open questions (open, parked, and dropped).
 | `npm run db:up` / `db:down` | Start / stop the Postgres container   |
 | `npm run db:migrate` | Create and apply a migration (`prisma migrate dev`) |
 | `npm run db:deploy` | Apply existing migrations without creating   |
-| `npm run db:seed`  | Seed the demo project (re-runnable)           |
+| `npm run db:seed`  | Seed a login account (no projects)            |
 | `npm run db:reset` | Drop, migrate, and seed from scratch          |
 
 ## Project layout
@@ -82,7 +81,7 @@ src/
     docs/               # public documentation
     (app)/              # protected pages (auth guard + header live here)
       no-access/        # 403 view for a project you don't belong to
-      projects/         # dashboard overview + project grid + create/import
+      projects/         # dashboard overview + project grid + create/import + archived list
       projects/[projectId]/            # milestone timeline + supervisors + share link
       projects/[projectId]/milestones/[milestoneId]  # kanban board + evidence + review + comments
       projects/[projectId]/meetings/   # supervision meeting log + action -> task
@@ -102,7 +101,7 @@ src/
   actions/
     auth.ts             # server action: sign-up (role choice, ALLOW_SIGNUP gate)
     reset.ts            # request + complete a password reset
-    projects.ts         # createProject, importProject, milestone CRUD + move/reschedule/details
+    projects.ts         # createProject, importProject, milestone CRUD + move/reschedule/details, archive/restore
     deliverables.ts     # add/toggle/update/delete milestone deliverables
     dashboard.ts        # markCommentsRead (supervisor-comment watermark)
     tasks.ts            # saveTask, deleteTask, moveTasks
@@ -115,7 +114,7 @@ src/
     evidence.ts         # createEvidence, updateEvidence, deleteEvidence (owner only)
   components/
     auth/               # sign-in / sign-up / password-reset client forms
-    projects/           # create-project + CSV import forms
+    projects/           # create-project + CSV import forms + archive controls
     timeline/           # add-milestone form, status control, move/reschedule controls
     kanban/             # KanbanBoard (dnd-kit), TaskDialog
     invites/            # invite-supervisor + accept-invite forms

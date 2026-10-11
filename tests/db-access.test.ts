@@ -12,6 +12,7 @@ import {
   findTaskForUser,
   listCommentsForTarget,
   listCommentsForTargets,
+  listArchivedProjectsForUser,
   listOwnedProjectsForUser,
   listProjectsForUser,
   listSupervisedProjectsForUser,
@@ -639,6 +640,72 @@ describeDb("DB-backed authorization", () => {
       const ownerTask = await findTaskForUser(importedTaskId, ownerId);
       expect(ownerTask?.notes).toContain("Depends on:");
       expect(await findTaskForUser(importedTaskId, intruderId)).toBeNull();
+    });
+  });
+
+  describe("archived projects", () => {
+    let archivedProjectId = "";
+    const archivedToken = "c".repeat(32);
+
+    beforeAll(async () => {
+      const project = await prisma.project.create({
+        data: {
+          title: `Archived plan ${Date.now()}`,
+          startDate: new Date(2026, 0, 1),
+          endDate: new Date(2026, 11, 31),
+          shareToken: archivedToken,
+          archivedAt: new Date(),
+          members: {
+            create: [
+              { userId: ownerId, role: "OWNER" },
+              { userId: supervisorId, role: "SUPERVISOR" },
+            ],
+          },
+        },
+      });
+      archivedProjectId = project.id;
+      createdProjectIds.push(project.id);
+    });
+
+    it("hides an archived project from the dashboard and member lists", async () => {
+      const dashboard = await findDashboardForUser(ownerId);
+      expect(dashboard.some((p) => p.id === archivedProjectId)).toBe(false);
+
+      const owned = await listOwnedProjectsForUser(ownerId);
+      expect(owned.some((p) => p.id === archivedProjectId)).toBe(false);
+
+      const supervised = await listSupervisedProjectsForUser(supervisorId);
+      expect(supervised.some((p) => p.id === archivedProjectId)).toBe(false);
+
+      const member = await listProjectsForUser(ownerId);
+      expect(member.some((p) => p.id === archivedProjectId)).toBe(false);
+    });
+
+    it("lists it under archived for its owner only", async () => {
+      const archived = await listArchivedProjectsForUser(ownerId);
+      expect(archived.some((p) => p.id === archivedProjectId)).toBe(true);
+
+      const supervisorArchived = await listArchivedProjectsForUser(supervisorId);
+      expect(supervisorArchived.some((p) => p.id === archivedProjectId)).toBe(
+        false,
+      );
+    });
+
+    it("pauses the public share link while archived", async () => {
+      expect(await findSharedProject(archivedToken)).toBeNull();
+    });
+
+    it("returns to the dashboard once restored", async () => {
+      await prisma.project.update({
+        where: { id: archivedProjectId },
+        data: { archivedAt: null },
+      });
+
+      const dashboard = await findDashboardForUser(ownerId);
+      expect(dashboard.some((p) => p.id === archivedProjectId)).toBe(true);
+      const archived = await listArchivedProjectsForUser(ownerId);
+      expect(archived.some((p) => p.id === archivedProjectId)).toBe(false);
+      expect(await findSharedProject(archivedToken)).not.toBeNull();
     });
   });
 });

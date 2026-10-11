@@ -67,6 +67,12 @@ export const createProjectSchema = z
     { message: "End date must be on or after the start date.", path: ["endDate"] },
   );
 
+// Archive and restore both act on a single project; the action re-checks that
+// the signed-in user owns it before changing anything.
+export const projectIdSchema = z.object({
+  projectId: z.string().min(1, "Missing project."),
+});
+
 export const createMilestoneSchema = z
   .object({
     name: z.string().trim().min(1, "Give the milestone a name.").max(120),
