@@ -42,14 +42,14 @@ describe("signUpSchema role", () => {
     password: "password123",
   };
 
-  it("defaults a missing role to STUDENT", () => {
-    expect(signUpSchema.parse({ ...base, role: null }).role).toBe("STUDENT");
+  it("defaults a missing role to NORMAL", () => {
+    expect(signUpSchema.parse({ ...base, role: null }).role).toBe("NORMAL");
   });
 
-  it("keeps a chosen SUPERVISOR role", () => {
-    expect(signUpSchema.parse({ ...base, role: "SUPERVISOR" }).role).toBe(
-      "SUPERVISOR",
-    );
+  it("accepts each of the three roles", () => {
+    for (const role of ["NORMAL", "STUDENT", "SUPERVISOR"] as const) {
+      expect(signUpSchema.parse({ ...base, role }).role).toBe(role);
+    }
   });
 
   it("rejects an unknown role", () => {

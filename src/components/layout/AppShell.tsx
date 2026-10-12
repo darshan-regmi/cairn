@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSyncExternalStore, useState } from "react";
 import { Dialog } from "@/components/ui/Dialog";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
+import { canOwnProjects, type UserRole } from "@/lib/roles";
 import {
   ChevronIcon,
   DashboardIcon,
@@ -94,11 +95,13 @@ const rowClass =
 
 export function AppShell({
   userEmail,
+  role,
   projects,
   signOut,
   children,
 }: {
   userEmail: string;
+  role: UserRole;
   projects: { id: string; title: string }[];
   signOut: () => Promise<void>;
   children: React.ReactNode;
@@ -170,42 +173,46 @@ export function AppShell({
           </nav>
 
           <div className="mt-5 flex-1 overflow-y-auto px-2 pb-3">
-            <p
-              className={`px-2.5 text-[11px] font-medium uppercase tracking-wide text-muted ${
-                collapsed ? "h-0 opacity-0" : "opacity-100"
-              }`}
-              aria-hidden={collapsed}
-            >
-              Your projects
-            </p>
-            <ul className="mt-1 space-y-0.5">
-              {projects.map((project) => (
-                <li key={project.id}>
-                  <Link
-                    href={`/dashboard?project=${project.id}`}
-                    title={project.title}
-                    className={`${rowClass} group text-muted hover:bg-accent/10 hover:text-fg`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="h-2 w-2 shrink-0 rounded-full bg-accent/50 transition-colors group-hover:bg-accent"
-                    />
-                    <span className={`truncate ${labelClass(collapsed)}`}>
-                      {project.title}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <button
-              type="button"
-              onClick={() => setNewOpen(true)}
-              title="New project"
-              className={`${rowClass} mt-1 w-full text-muted hover:bg-accent/10 hover:text-fg`}
-            >
-              <PlusIcon className="shrink-0" />
-              <span className={labelClass(collapsed)}>New project</span>
-            </button>
+            {canOwnProjects(role) && (
+              <>
+                <p
+                  className={`px-2.5 text-[11px] font-medium uppercase tracking-wide text-muted ${
+                    collapsed ? "h-0 opacity-0" : "opacity-100"
+                  }`}
+                  aria-hidden={collapsed}
+                >
+                  Your projects
+                </p>
+                <ul className="mt-1 space-y-0.5">
+                  {projects.map((project) => (
+                    <li key={project.id}>
+                      <Link
+                        href={`/dashboard?project=${project.id}`}
+                        title={project.title}
+                        className={`${rowClass} group text-muted hover:bg-accent/10 hover:text-fg`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="h-2 w-2 shrink-0 rounded-full bg-accent/50 transition-colors group-hover:bg-accent"
+                        />
+                        <span className={`truncate ${labelClass(collapsed)}`}>
+                          {project.title}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setNewOpen(true)}
+                  title="New project"
+                  className={`${rowClass} mt-1 w-full text-muted hover:bg-accent/10 hover:text-fg`}
+                >
+                  <PlusIcon className="shrink-0" />
+                  <span className={labelClass(collapsed)}>New project</span>
+                </button>
+              </>
+            )}
           </div>
 
           <div className="border-t border-edge p-2">

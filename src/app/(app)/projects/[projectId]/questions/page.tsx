@@ -7,6 +7,7 @@ import {
   projectExists,
 } from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
+import { canUseResearchTools } from "@/lib/roles";
 import { deleteQuestionAction } from "@/actions/questions";
 import { toDateInput } from "@/lib/milestone-metrics";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -65,6 +66,25 @@ export default async function QuestionsPage({
   // Supervisors read questions through the read-only supervisor view.
   const role = await projectRoleFor(project.id, session.user.id);
   if (role === "SUPERVISOR") redirect(`/supervisor/${project.id}`);
+
+  // The question board is part of the student toolkit.
+  if (!canUseResearchTools(session.user.role)) {
+    return (
+      <main id="main-content" className="mx-auto w-full max-w-3xl px-4 py-12">
+        <Link
+          href={`/projects/${project.id}`}
+          className="text-sm text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+        >
+          ← {project.title}
+        </Link>
+        <h1 className="mt-2 text-2xl tracking-tight">Open questions</h1>
+        <p className="mt-2 text-sm text-muted">
+          The question board is part of the student toolkit, so it is only
+          available on student accounts.
+        </p>
+      </main>
+    );
+  }
 
   const milestones = project.milestones.map((milestone) => ({
     id: milestone.id,

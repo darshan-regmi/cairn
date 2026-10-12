@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { findProjectForUser, projectExists } from "@/lib/data";
 import { listPendingInvitesForProject, listSupervisorsForProject } from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
+import { canUseResearchTools } from "@/lib/roles";
 import { removeSupervisorAction, revokeInviteAction } from "@/actions/invites";
 import {
   daysLeft,
@@ -56,6 +57,10 @@ export default async function ProjectTimelinePage({
 }) {
   const session = await auth();
   if (!session?.user) redirect("/login");
+
+  // Reviews, questions and evidence are the student toolkit; other owners get
+  // the timeline, boards and meetings.
+  const canResearch = canUseResearchTools(session.user.role);
 
   const { projectId } = await params;
   const project = await findProjectForUser(projectId, session.user.id);
@@ -131,15 +136,17 @@ export default async function ProjectTimelinePage({
                 <span className="text-muted">· {project._count.meetings}</span>
               )}
             </Link>
-            <Link
-              href={`/projects/${project.id}/questions`}
-              className="inline-flex items-center gap-1 rounded-md border border-edge px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              Questions
-              {project._count.questions > 0 && (
-                <span className="text-muted">· {project._count.questions}</span>
-              )}
-            </Link>
+            {canResearch && (
+              <Link
+                href={`/projects/${project.id}/questions`}
+                className="inline-flex items-center gap-1 rounded-md border border-edge px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                Questions
+                {project._count.questions > 0 && (
+                  <span className="text-muted">· {project._count.questions}</span>
+                )}
+              </Link>
+            )}
           </div>
         </div>
         <AddMilestoneForm projectId={project.id} />

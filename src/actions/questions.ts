@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ownerWhere } from "@/lib/access";
+import { canUseResearchTools } from "@/lib/roles";
 import {
   adoptQuestionSchema,
   createQuestionSchema,
@@ -13,6 +14,8 @@ import {
 } from "@/lib/validation";
 
 export type QuestionActionState = { success: boolean; error?: string };
+
+const ONLY_STUDENTS = "Only student accounts can use the question board.";
 
 function revalidateQuestions(projectId: string) {
   revalidatePath(`/projects/${projectId}`);
@@ -41,6 +44,9 @@ export async function createQuestionAction(
 ): Promise<QuestionActionState> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Not signed in." };
+  if (!canUseResearchTools(session.user.role)) {
+    return { success: false, error: ONLY_STUDENTS };
+  }
 
   const parsed = createQuestionSchema.safeParse({
     projectId: formData.get("projectId"),
@@ -93,6 +99,9 @@ export async function updateQuestionAction(
 ): Promise<QuestionActionState> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Not signed in." };
+  if (!canUseResearchTools(session.user.role)) {
+    return { success: false, error: ONLY_STUDENTS };
+  }
 
   const parsed = updateQuestionSchema.safeParse({
     questionId: formData.get("questionId"),
@@ -142,6 +151,7 @@ export async function updateQuestionAction(
 export async function deleteQuestionAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return;
+  if (!canUseResearchTools(session.user.role)) return;
 
   const parsed = deleteQuestionSchema.safeParse({
     questionId: formData.get("questionId"),
@@ -162,6 +172,7 @@ export async function deleteQuestionAction(formData: FormData) {
 export async function setQuestionStatusAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return;
+  if (!canUseResearchTools(session.user.role)) return;
 
   const parsed = setQuestionStatusSchema.safeParse({
     questionId: formData.get("questionId"),
@@ -200,6 +211,9 @@ export async function adoptQuestionAction(
 ): Promise<QuestionActionState> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Not signed in." };
+  if (!canUseResearchTools(session.user.role)) {
+    return { success: false, error: ONLY_STUDENTS };
+  }
 
   const parsed = adoptQuestionSchema.safeParse({
     questionId: formData.get("questionId"),

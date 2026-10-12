@@ -8,6 +8,7 @@ import {
   projectExists,
 } from "@/lib/data";
 import { projectRoleFor } from "@/lib/access";
+import { canUseResearchTools } from "@/lib/roles";
 import {
   isOverdue,
   daysLeft,
@@ -57,6 +58,9 @@ export default async function MilestoneKanbanPage({
   // Supervisors read through /supervisor/[projectId], not the editing board.
   const role = await projectRoleFor(milestone.projectId, session.user.id);
   if (role === "SUPERVISOR") redirect(`/supervisor/${milestone.projectId}`);
+
+  // Reviews and evidence are student tools; other owners keep the board.
+  const canResearch = canUseResearchTools(session.user.role);
 
   const comments = toCommentItems(
     await listCommentsForTarget("MILESTONE", milestone.id),
@@ -183,13 +187,16 @@ export default async function MilestoneKanbanPage({
         }))}
       />
 
-      <EvidenceSection
-        milestoneId={milestone.id}
-        items={evidence}
-        comments={evidenceComments}
-        currentUserId={session.user.id}
-      />
+      {canResearch && (
+        <EvidenceSection
+          milestoneId={milestone.id}
+          items={evidence}
+          comments={evidenceComments}
+          currentUserId={session.user.id}
+        />
+      )}
 
+      {canResearch && (
       <section className="mt-10 max-w-3xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-medium">Review</h2>
@@ -253,6 +260,7 @@ export default async function MilestoneKanbanPage({
           </div>
         )}
       </section>
+      )}
 
       <div className="mt-10 max-w-3xl">
         <CommentSection

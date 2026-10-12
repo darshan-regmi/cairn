@@ -59,9 +59,11 @@ enum EvidenceType {
 }
 
 // The role a person chooses at sign up. It describes who they are in general
-// (a student running a project, or a supervisor reviewing one); per-project
-// rights live on ProjectMember.role.
+// (a normal user or student running projects, or a supervisor invited to review
+// one). It gates the research tools; per-project rights live on
+// ProjectMember.role.
 enum UserRole {
+  NORMAL
   STUDENT
   SUPERVISOR
 }
@@ -98,7 +100,7 @@ model User {
   email               String               @unique
   passwordHash        String
   name                String?
-  role                UserRole             @default(STUDENT)
+  role                UserRole             @default(NORMAL)
   avatarUrl           String?
   timeZone            String?
   emailVerifiedAt     DateTime?

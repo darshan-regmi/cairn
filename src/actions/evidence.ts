@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ownerWhere } from "@/lib/access";
+import { canUseResearchTools } from "@/lib/roles";
 import {
   createEvidenceSchema,
   deleteEvidenceSchema,
@@ -11,6 +12,8 @@ import {
 } from "@/lib/validation";
 
 export type EvidenceActionState = { success: boolean; error?: string };
+
+const ONLY_STUDENTS = "Only student accounts can manage evidence.";
 
 function revalidateEvidence(projectId: string, milestoneId: string) {
   revalidatePath(`/projects/${projectId}`);
@@ -44,6 +47,9 @@ export async function createEvidenceAction(
 ): Promise<EvidenceActionState> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Not signed in." };
+  if (!canUseResearchTools(session.user.role)) {
+    return { success: false, error: ONLY_STUDENTS };
+  }
 
   const parsed = createEvidenceSchema.safeParse({
     milestoneId: formData.get("milestoneId"),
@@ -87,6 +93,9 @@ export async function updateEvidenceAction(
 ): Promise<EvidenceActionState> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Not signed in." };
+  if (!canUseResearchTools(session.user.role)) {
+    return { success: false, error: ONLY_STUDENTS };
+  }
 
   const parsed = updateEvidenceSchema.safeParse({
     evidenceId: formData.get("evidenceId"),
@@ -127,6 +136,7 @@ export async function updateEvidenceAction(
 export async function deleteEvidenceAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return;
+  if (!canUseResearchTools(session.user.role)) return;
 
   const parsed = deleteEvidenceSchema.safeParse({
     evidenceId: formData.get("evidenceId"),

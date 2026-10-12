@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { userRoleBlurb } from "@/lib/roles";
 
 export const metadata: Metadata = {
   title: "Documentation · Cairn",
@@ -18,6 +19,7 @@ const inlineLink =
 
 const sections = [
   ["getting-started", "Getting started"],
+  ["roles", "Roles"],
   ["dashboard", "The dashboard"],
   ["timeline", "Milestones and the timeline"],
   ["board", "Tasks and the board"],
@@ -104,6 +106,26 @@ export default async function DocsPage() {
         <p>
           Then create a project with a start and end date. A project holds
           milestones; a milestone holds tasks.
+        </p>
+      </Section>
+
+      <Section id="roles" title="Roles">
+        <p>You pick a role when you sign up. It sets what you can do:</p>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Normal user</strong> — {userRoleBlurb.NORMAL}
+          </li>
+          <li>
+            <strong>Student</strong> — {userRoleBlurb.STUDENT}
+          </li>
+          <li>
+            <strong>Supervisor</strong> — {userRoleBlurb.SUPERVISOR}
+          </li>
+        </ul>
+        <p>
+          On a project, your rights also depend on whether you own it or were
+          invited to it. Supervisors are always invited to a project; they never
+          create one.
         </p>
       </Section>
 

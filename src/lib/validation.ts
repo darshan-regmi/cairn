@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { USER_ROLES } from "@/lib/roles";
 
 export const signUpSchema = z.object({
   // nullish: FormData.get() returns null when a field is absent.
@@ -9,11 +10,10 @@ export const signUpSchema = z.object({
     .min(8, "Password must be at least 8 characters.")
     .max(200),
   // The role a person is in general; per-project rights live on ProjectMember.
-  // Missing means the common case: a student running their own project.
   role: z
-    .enum(["STUDENT", "SUPERVISOR"])
+    .enum(USER_ROLES)
     .nullish()
-    .transform((value) => value ?? "STUDENT"),
+    .transform((value) => value ?? "NORMAL"),
 });
 
 export const loginSchema = z.object({

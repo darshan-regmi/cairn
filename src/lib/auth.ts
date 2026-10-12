@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 import { loginSchema } from "@/lib/validation";
+import type { UserRole } from "@/lib/roles";
 
 // JWT sessions + Credentials. We skip the Prisma adapter because email/password
 // is the only sign-in method: adapter tables would add surface area for no gain.
@@ -28,17 +29,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await verifyPassword(parsed.data.password, user.passwordHash);
         if (!valid) return null;
 
-        return { id: user.id, email: user.email, name: user.name };
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
       },
     }),
   ],
   callbacks: {
     jwt({ token, user }) {
-      if (user) token.id = user.id;
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+      }
       return token;
     },
     session({ session, token }) {
       if (token.id) session.user.id = token.id as string;
+      // Legacy tokens minted before roles existed fall back to STUDENT.
+      session.user.role = (token.role as UserRole | undefined) ?? "STUDENT";
       return session;
     },
   },

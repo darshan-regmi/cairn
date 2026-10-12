@@ -16,6 +16,7 @@ export default async function AppLayout({
   return (
     <AppShell
       userEmail={session.user.email ?? ""}
+      role={session.user.role}
       projects={projects.map((project) => ({
         id: project.id,
         title: project.title,

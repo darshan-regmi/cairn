@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ownerWhere } from "@/lib/access";
+import { canOwnProjects } from "@/lib/roles";
 import {
   createMilestoneSchema,
   createProjectSchema,
@@ -39,6 +40,9 @@ export async function createProjectAction(
 ): Promise<ProjectActionState> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Not signed in." };
+  if (!canOwnProjects(session.user.role)) {
+    return { success: false, error: "Supervisor accounts cannot create projects." };
+  }
 
   const parsed = createProjectSchema.safeParse({
     title: formData.get("title"),
@@ -73,6 +77,9 @@ export async function importProjectAction(
 ): Promise<ProjectActionState> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Not signed in." };
+  if (!canOwnProjects(session.user.role)) {
+    return { success: false, error: "Supervisor accounts cannot create projects." };
+  }
 
   const file = formData.get("file");
   if (!(file instanceof File)) {

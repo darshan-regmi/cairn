@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ownerWhere } from "@/lib/access";
+import { canUseResearchTools } from "@/lib/roles";
 import { deleteReviewSchema, saveReviewSchema } from "@/lib/validation";
 
 export type ReviewActionState = { success: boolean; error?: string };
@@ -29,6 +30,9 @@ export async function saveReviewAction(
 ): Promise<ReviewActionState> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Not signed in." };
+  if (!canUseResearchTools(session.user.role)) {
+    return { success: false, error: "Only student accounts can write reviews." };
+  }
 
   const parsed = saveReviewSchema.safeParse({
     milestoneId: formData.get("milestoneId"),
@@ -72,6 +76,7 @@ export async function saveReviewAction(
 export async function deleteReviewAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return;
+  if (!canUseResearchTools(session.user.role)) return;
 
   const parsed = deleteReviewSchema.safeParse({
     milestoneId: formData.get("milestoneId"),

@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useActionState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { signUp, type SignUpState } from "@/actions/auth";
+import { USER_ROLES, userRoleBlurb, userRoleLabel } from "@/lib/roles";
 
 const initialState: SignUpState = { success: false };
 
 export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
   const router = useRouter();
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
   const [state, formAction, pending] = useActionState(signUp, initialState);
+  // A completed action resets the uncontrolled fields, so remember what was
+  // submitted; the sign-in below runs after that reset.
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
 
   // After the account is created, sign the user straight in so they land on
   // the app without a second login round trip.
@@ -21,8 +23,8 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
 
     void signIn("credentials", {
       redirect: false,
-      email: emailRef.current?.value ?? "",
-      password: passwordRef.current?.value ?? "",
+      email: credentials.email,
+      password: credentials.password,
     }).then((result) => {
       if (result?.error) {
         router.push("/login?registered=1");
@@ -31,10 +33,20 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
         router.refresh();
       }
     });
-  }, [state.success, router, callbackUrl]);
+  }, [state.success, router, callbackUrl, credentials]);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      action={formAction}
+      onSubmit={(event) => {
+        const data = new FormData(event.currentTarget);
+        setCredentials({
+          email: String(data.get("email") ?? ""),
+          password: String(data.get("password") ?? ""),
+        });
+      }}
+      className="space-y-4"
+    >
       <div className="space-y-1">
         <label htmlFor="name" className="block text-sm font-medium">
           Name <span className="text-muted">(optional)</span>
@@ -53,7 +65,6 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
           Email
         </label>
         <input
-          ref={emailRef}
           id="email"
           name="email"
           type="email"
@@ -68,7 +79,6 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
           Password
         </label>
         <input
-          ref={passwordRef}
           id="password"
           name="password"
           type="password"
@@ -82,30 +92,33 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
 
       <fieldset className="space-y-2">
         <legend className="block text-sm font-medium">I am a…</legend>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="flex cursor-pointer items-center gap-2 rounded-md border border-edge px-3 py-2 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/10">
-            <input
-              type="radio"
-              name="role"
-              value="STUDENT"
-              defaultChecked
-              className="accent-accent"
-            />
-            Student
-          </label>
-          <label className="flex cursor-pointer items-center gap-2 rounded-md border border-edge px-3 py-2 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/10">
-            <input
-              type="radio"
-              name="role"
-              value="SUPERVISOR"
-              className="accent-accent"
-            />
-            Supervisor
-          </label>
+        <div className="space-y-2">
+          {USER_ROLES.map((value) => (
+            <label
+              key={value}
+              className="flex cursor-pointer gap-2.5 rounded-md border border-edge px-3 py-2 text-sm has-[:checked]:border-accent has-[:checked]:bg-accent/10"
+            >
+              <input
+                type="radio"
+                name="role"
+                value={value}
+                defaultChecked={value === "NORMAL"}
+                className="mt-0.5 accent-accent"
+              />
+              <span>
+                <span className="block font-medium">
+                  {userRoleLabel[value]}
+                </span>
+                <span className="block text-xs text-muted">
+                  {userRoleBlurb[value]}
+                </span>
+              </span>
+            </label>
+          ))}
         </div>
         <p className="text-xs text-muted">
-          This just sets up your side of the app. On a project, your rights
-          depend on whether you own it or were invited.
+          Your role sets what you can do. On a project, your rights also depend
+          on whether you own it or were invited to it.
         </p>
       </fieldset>
 
