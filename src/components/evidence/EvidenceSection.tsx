@@ -239,8 +239,8 @@ export function EvidenceSection({
 
       {items.length === 0 && !adding ? (
         <p className="mt-3 text-sm text-muted">
-          No evidence yet. Collect links to real artefacts as you go; they become
-          your report and viva material.
+          No evidence yet. Collect links to real artefacts as you go; they
+          become the record you write up later.
         </p>
       ) : (
         <ul className="mt-3 space-y-3">

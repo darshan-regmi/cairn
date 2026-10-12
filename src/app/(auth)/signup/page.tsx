@@ -49,7 +49,7 @@ export default async function SignUpPage({
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight">Create account</h1>
         <p className="text-sm text-muted">
-          Your final year project, organised in one place.
+          Your project, organised in one place.
         </p>
       </div>
 

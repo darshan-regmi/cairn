@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FYP Planner",
+  title: "Cairn",
   description:
-    "Plan milestones, track tasks, log supervisor meetings, and collect evidence for your final year project.",
+    "Plan milestones, track tasks, log meetings, and collect evidence — everything your project needs in one place.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

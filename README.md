@@ -1,12 +1,12 @@
-# FYP Planner
+# Cairn
 
-A planner for running your whole final year project: milestone timelines, a
-kanban task board, supervisor meeting logs, open questions, milestone reviews,
-a read-only share link, and evidence collection for the final report and viva.
+A planner for running a project from start to finish: milestone timelines, a
+kanban task board, meeting logs, open questions, milestone reviews, a read-only
+share link, and evidence collection for the write-up.
 
 The app connects the pieces: a task agreed in a meeting can be turned into a
 kanban card in one click, an open question can be adopted as a task, and the
-planning history becomes material for the final report.
+planning history becomes material you can write up later.
 
 ## Tech stack
 

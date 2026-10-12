@@ -49,8 +49,8 @@ const NAV: NavItem[] = [
   },
 ];
 
-const STORAGE_KEY = "fyp:sidebar-collapsed";
-const CHANGE_EVENT = "fyp:sidebar-change";
+const STORAGE_KEY = "cairn:sidebar-collapsed";
+const CHANGE_EVENT = "cairn:sidebar-change";
 
 let mobileQuery: MediaQueryList | null = null;
 
@@ -131,7 +131,7 @@ export function AppShell({
             <Link
               href="/dashboard"
               className="flex items-center gap-2.5 rounded-md px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              aria-label="FYP Planner dashboard"
+              aria-label="Cairn dashboard"
             >
               <span
                 aria-hidden="true"
@@ -142,7 +142,7 @@ export function AppShell({
               <span
                 className={`font-display text-base tracking-tight text-fg ${labelClass(collapsed)}`}
               >
-                FYP Planner
+                Cairn
               </span>
             </Link>
           </div>

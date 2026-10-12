@@ -4,9 +4,9 @@ import { auth } from "@/lib/auth";
 import { isSignupAllowed } from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: "FYP Planner — plan your final year project",
+  title: "Cairn — a home for your project",
   description:
-    "Milestones, kanban boards, supervisor meetings, questions and evidence in one self-hosted planner.",
+    "Milestones, kanban boards, meeting notes, open questions and evidence in one self-hosted project planner.",
 };
 
 const features = [
@@ -51,7 +51,7 @@ export default async function Home() {
   return (
     <main id="main-content" className="mx-auto w-full max-w-5xl px-4">
       <header className="flex flex-wrap items-center justify-between gap-4 py-6">
-        <span className="font-display text-lg tracking-tight">FYP Planner</span>
+        <span className="font-display text-lg tracking-tight">Cairn</span>
         <nav aria-label="Primary" className="flex items-center gap-5 text-sm">
           <Link href="/docs" className={quietLink}>
             Docs
@@ -77,15 +77,15 @@ export default async function Home() {
 
       <section className="py-16 sm:py-24">
         <p className="text-sm font-medium text-accent">
-          Final year projects, in one place
+          Projects, in one place
         </p>
         <h1 className="mt-3 max-w-3xl font-display text-4xl tracking-tight sm:text-5xl">
           Plan the project, not the paperwork.
         </h1>
         <p className="mt-5 max-w-2xl text-lg text-muted">
-          FYP Planner keeps your timeline, kanban board, supervisor meetings,
-          open questions and evidence together — and gives your supervisor a
-          clear, read-only view.
+          Cairn keeps your timeline, kanban board, meeting notes, open
+          questions and evidence together — and gives your supervisor a clear,
+          read-only view.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
@@ -140,7 +140,7 @@ export default async function Home() {
       </section>
 
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-edge py-8 text-sm text-muted">
-        <p>Built to self-host. No mail server required.</p>
+        <p>Built to self-host.</p>
         <nav aria-label="Footer" className="flex items-center gap-5">
           <Link href="/docs" className={quietLink}>
             Docs

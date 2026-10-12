@@ -4,9 +4,9 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Documentation · FYP Planner",
+  title: "Documentation · Cairn",
   description:
-    "How to plan a final year project with FYP Planner: milestones, tasks, meetings, questions, evidence and supervisor access.",
+    "How to plan and run a project with Cairn: milestones, tasks, meetings, questions, evidence and supervisor access.",
 };
 
 const quietLink =
@@ -61,7 +61,7 @@ export default async function DocsPage() {
           href="/"
           className="font-display text-lg tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          FYP Planner
+          Cairn
         </Link>
         <nav aria-label="Primary" className="flex items-center gap-5 text-sm">
           <Link href="/" className={quietLink}>
@@ -76,9 +76,9 @@ export default async function DocsPage() {
       <div className="py-10">
         <h1 className="font-display text-3xl tracking-tight">Documentation</h1>
         <p className="mt-3 text-muted">
-          FYP Planner keeps a final year project in one place: the plan, the
-          work, the conversations with your supervisor, and the evidence that
-          proves it is done.
+          Cairn keeps a project in one place: the plan, the work, the
+          conversations with your supervisor, and the evidence that proves it
+          is done.
         </p>
       </div>
 
@@ -233,7 +233,7 @@ export default async function DocsPage() {
       </Section>
 
       <Section id="self-hosting" title="Self-hosting">
-        <p>FYP Planner is configured entirely through environment variables:</p>
+        <p>Cairn is configured entirely through environment variables:</p>
         <ul className="list-disc space-y-1 pl-5">
           <li>
             <code className="font-mono text-fg">DATABASE_URL</code> — the
@@ -257,7 +257,7 @@ export default async function DocsPage() {
       </Section>
 
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-edge py-8 text-sm text-muted">
-        <p>FYP Planner</p>
+        <p>Cairn</p>
         <nav aria-label="Footer" className="flex items-center gap-5">
           <Link href="/" className={quietLink}>
             Home

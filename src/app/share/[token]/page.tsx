@@ -21,7 +21,7 @@ import {
 } from "@/lib/status";
 
 export const metadata: Metadata = {
-  title: "Shared project · FYP Planner",
+  title: "Shared project · Cairn",
   // Capability links should stay out of search indexes.
   robots: { index: false, follow: false },
 };
@@ -52,7 +52,7 @@ export default async function SharedProjectPage({
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-4xl px-4 py-12">
-      <p className="font-display text-base tracking-tight">FYP Planner</p>
+      <p className="font-display text-base tracking-tight">Cairn</p>
 
       <header className="mt-6 border-b border-edge pb-6">
         <p className="text-xs font-medium uppercase tracking-wide text-muted">

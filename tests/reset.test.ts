@@ -95,7 +95,7 @@ describeDb("password reset actions (DB)", () => {
   beforeAll(async () => {
     await prisma.$queryRaw`SELECT 1`;
     const tag = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-    email = `reset_${tag}@fyp-planner.test`;
+    email = `reset_${tag}@cairn.test`;
     const user = await prisma.user.create({
       data: { email, passwordHash: "scrypt:0:old", name: "Reset User" },
     });
@@ -115,7 +115,7 @@ describeDb("password reset actions (DB)", () => {
     expect(found.resetUrl).toMatch(/^\/reset\/[0-9a-f]{48}$/);
 
     const unknown = new FormData();
-    unknown.set("email", `nobody_${Date.now()}@fyp-planner.test`);
+    unknown.set("email", `nobody_${Date.now()}@cairn.test`);
     const missing = await requestPasswordResetAction(
       { success: false },
       unknown,

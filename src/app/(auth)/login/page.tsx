@@ -22,7 +22,7 @@ export default async function LoginPage({
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight">Log in</h1>
         <p className="text-sm text-muted">
-          Continue planning your final year project.
+          Continue planning your project.
         </p>
       </div>
 
