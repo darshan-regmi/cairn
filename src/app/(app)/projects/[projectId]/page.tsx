@@ -29,11 +29,12 @@ import { AddMilestoneForm } from "@/components/timeline/AddMilestoneForm";
 import { MilestoneStatusControl } from "@/components/timeline/MilestoneStatusControl";
 import {
   DeleteMilestoneButton,
-  EditMilestonePanel,
+  EditMilestoneDialog,
   MoveMilestoneButtons,
 } from "@/components/timeline/MilestoneControls";
 import { InviteSupervisorForm } from "@/components/invites/InviteSupervisorForm";
 import { ShareLinkPanel } from "@/components/share/ShareLinkPanel";
+import { EditProjectDialog } from "@/components/projects/EditProjectDialog";
 import {
   CompleteProjectButton,
   DeleteProjectButton,
@@ -341,7 +342,7 @@ export default async function ProjectTimelinePage({
                       isFirst={milestone.index === 0}
                       isLast={milestone.index === milestones.length - 1}
                     />
-                    <EditMilestonePanel
+                    <EditMilestoneDialog
                       milestoneId={milestone.id}
                       name={milestone.name}
                       goal={milestone.goal ?? ""}
@@ -373,6 +374,15 @@ export default async function ProjectTimelinePage({
             : "Marking this project complete moves it to your archive and pauses its share link. You can reopen it at any time. Deleting is permanent."}
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
+          <EditProjectDialog
+            project={{
+              id: project.id,
+              title: project.title,
+              goal: project.goal,
+              startDate: project.startDate,
+              endDate: project.endDate,
+            }}
+          />
           {project.status === "COMPLETE" ? (
             <ReopenProjectButton projectId={project.id} />
           ) : (

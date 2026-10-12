@@ -11,8 +11,7 @@ import { toDateInput } from "@/lib/milestone-metrics";
 import { ProgressBar } from "@/components/ProgressBar";
 import { StatusBadge } from "@/components/StatusBadge";
 import { projectStatusLabel, projectStatusTone } from "@/lib/status";
-import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
-import { ImportCsvForm } from "@/components/projects/ImportCsvForm";
+import { ProjectsToolbar } from "@/components/projects/ProjectsToolbar";
 import {
   CompleteProjectButton,
   DeleteProjectButton,
@@ -40,9 +39,8 @@ export default async function ProjectsPage() {
         </p>
       </header>
 
-      <div className="page-enter">
-        <CreateProjectForm />
-        <ImportCsvForm />
+      <div className="page-enter mt-6">
+        <ProjectsToolbar />
       </div>
 
       <section aria-labelledby="active-heading" className="mt-12">

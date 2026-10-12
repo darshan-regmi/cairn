@@ -1,11 +1,13 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   deleteMilestoneAction,
   moveMilestoneAction,
   updateMilestoneAction,
 } from "@/actions/projects";
+import { Dialog } from "@/components/ui/Dialog";
 
 const inputClass =
   "w-full rounded-md border border-edge bg-transparent px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30";
@@ -55,8 +57,8 @@ export function MoveMilestoneButtons({
   );
 }
 
-/** Inline form to edit a milestone's name, goal and planned dates. */
-export function EditMilestonePanel({
+/** Edit a milestone's name, goal and planned dates from a dialog. */
+export function EditMilestoneDialog({
   milestoneId,
   name,
   goal,
@@ -69,132 +71,142 @@ export function EditMilestonePanel({
   plannedStart: string;
   plannedEnd: string;
 }) {
-  const uid = useId();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [state, formAction, pending] = useActionState(updateMilestoneAction, {
+    success: false,
+  });
+  const handled = useRef(false);
+  const uid = useId();
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    startTransition(async () => {
-      const result = await updateMilestoneAction({ success: false }, formData);
-      if (result.success) {
-        setError(null);
-        setOpen(false);
-      } else {
-        setError(result.error ?? "Could not save the milestone.");
-      }
-    });
-  }
+  useEffect(() => {
+    if (state.success && !handled.current) {
+      handled.current = true;
+      setOpen(false);
+      router.refresh();
+    }
+  }, [state, router]);
 
-  if (!open) {
-    return (
+  return (
+    <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          handled.current = false;
+          setOpen(true);
+        }}
         className="rounded px-1 text-xs text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         Edit
       </button>
-    );
-  }
 
-  return (
-    <form
-      onSubmit={handleSubmit}
-      noValidate
-      className="mt-3 w-full rounded-lg border border-edge bg-accent/5 p-4"
-    >
-      <input type="hidden" name="milestoneId" value={milestoneId} />
-      <div className="space-y-1">
-        <label
-          htmlFor={`${uid}-name`}
-          className="block text-xs font-medium text-muted"
-        >
-          Name
-        </label>
-        <input
-          id={`${uid}-name`}
-          name="name"
-          type="text"
-          required
-          maxLength={120}
-          defaultValue={name}
-          className={inputClass}
-        />
-      </div>
-      <div className="mt-3 space-y-1">
-        <label
-          htmlFor={`${uid}-goal`}
-          className="block text-xs font-medium text-muted"
-        >
-          Goal <span className="font-normal">(optional)</span>
-        </label>
-        <textarea
-          id={`${uid}-goal`}
-          name="goal"
-          rows={2}
-          maxLength={500}
-          defaultValue={goal}
-          className={inputClass}
-        />
-      </div>
-      <div className="mt-3 flex flex-wrap items-end gap-3">
-        <div className="space-y-1">
-          <label
-            htmlFor={`${uid}-start`}
-            className="block text-xs font-medium text-muted"
-          >
-            Start
-          </label>
-          <input
-            id={`${uid}-start`}
-            name="plannedStart"
-            type="date"
-            required
-            defaultValue={plannedStart}
-            className={inputClass}
-          />
-        </div>
-        <div className="space-y-1">
-          <label
-            htmlFor={`${uid}-end`}
-            className="block text-xs font-medium text-muted"
-          >
-            End
-          </label>
-          <input
-            id={`${uid}-end`}
-            name="plannedEnd"
-            type="date"
-            required
-            defaultValue={plannedEnd}
-            className={inputClass}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={pending}
-          className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition-transform duration-150 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink motion-safe:active:scale-[0.97]"
-        >
-          {pending ? "Saving…" : "Save changes"}
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setError(null);
-            setOpen(false);
-          }}
-          className="rounded-md border border-edge px-3 py-1.5 text-sm transition-colors hover:bg-accent/10"
-        >
-          Cancel
-        </button>
-      </div>
-      {error && (
-        <p className="mt-2 text-sm text-red-700 dark:text-red-400">{error}</p>
-      )}
-    </form>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Edit milestone"
+        description="Rename it, restate the goal, or move the planned dates. Its tasks stay put."
+      >
+        <form action={formAction} className="space-y-4">
+          <input type="hidden" name="milestoneId" value={milestoneId} />
+
+          <div className="space-y-1">
+            <label
+              htmlFor={`${uid}-name`}
+              className="block text-sm font-medium"
+            >
+              Name
+            </label>
+            <input
+              id={`${uid}-name`}
+              name="name"
+              type="text"
+              required
+              maxLength={120}
+              defaultValue={name}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label
+              htmlFor={`${uid}-goal`}
+              className="block text-sm font-medium"
+            >
+              Goal <span className="font-normal text-muted">(optional)</span>
+            </label>
+            <textarea
+              id={`${uid}-goal`}
+              name="goal"
+              rows={2}
+              maxLength={500}
+              defaultValue={goal}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-4">
+            <div className="min-w-40 flex-1 space-y-1">
+              <label
+                htmlFor={`${uid}-start`}
+                className="block text-sm font-medium"
+              >
+                Start
+              </label>
+              <input
+                id={`${uid}-start`}
+                name="plannedStart"
+                type="date"
+                required
+                defaultValue={plannedStart}
+                className={inputClass}
+              />
+            </div>
+            <div className="min-w-40 flex-1 space-y-1">
+              <label
+                htmlFor={`${uid}-end`}
+                className="block text-sm font-medium"
+              >
+                End
+              </label>
+              <input
+                id={`${uid}-end`}
+                name="plannedEnd"
+                type="date"
+                required
+                defaultValue={plannedEnd}
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          {state.error && (
+            <p
+              role="alert"
+              className="border-l-2 border-red-500 pl-3 text-sm text-red-700 dark:text-red-400"
+            >
+              {state.error}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-md border border-edge px-3 py-1.5 text-sm transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink transition-[transform,opacity] duration-150 hover:opacity-90 disabled:opacity-50 motion-safe:active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
+            >
+              {pending ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        </form>
+      </Dialog>
+    </>
   );
 }
 

@@ -19,7 +19,12 @@ import {
 } from "@/lib/validation";
 import { parseProjectCsv } from "@/lib/csv-import";
 
-export type ProjectActionState = { success: boolean; error?: string };
+export type ProjectActionState = {
+  success: boolean;
+  error?: string;
+  /** Set on success so the caller can navigate without a server redirect. */
+  projectId?: string;
+};
 
 /** Refresh every page that lists projects, so a change shows up everywhere. */
 function revalidateProjectLists(projectId?: string) {
@@ -59,7 +64,7 @@ export async function createProjectAction(
   });
 
   revalidateProjectLists();
-  redirect(`/projects/${project.id}`);
+  return { success: true, projectId: project.id };
 }
 
 export async function importProjectAction(
@@ -147,7 +152,7 @@ export async function importProjectAction(
   });
 
   revalidateProjectLists();
-  redirect(`/projects/${project.id}`);
+  return { success: true, projectId: project.id };
 }
 
 export async function createMilestoneAction(

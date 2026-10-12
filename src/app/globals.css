@@ -129,6 +129,26 @@ body {
   }
 }
 
+@keyframes dialog-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   /* A page or section settling into place. */
   .page-enter {
@@ -176,5 +196,39 @@ body {
     transform: translateY(-2px);
     border-color: color-mix(in srgb, var(--app-accent) 45%, var(--app-edge));
     box-shadow: 0 14px 30px -20px rgb(1 7 54 / 0.5);
+  }
+}
+
+/*
+ * Dialogs use the native <dialog> top layer, so focus trapping, Escape and
+ * the backdrop come for free. Enter/exit motion lives in the reduced-motion
+ * gate above.
+ */
+dialog.dialog {
+  padding: 0;
+  border: 1px solid var(--app-edge);
+  border-radius: 0.75rem;
+  background-color: var(--app-surface);
+  color: var(--app-fg);
+  box-shadow: var(--shadow-lift);
+}
+
+dialog.dialog::backdrop {
+  background-color: rgb(1 7 54 / 0.45);
+  backdrop-filter: blur(3px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  dialog.dialog[open] {
+    animation: dialog-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  dialog.dialog[open]::backdrop {
+    animation: fade-in 200ms ease both;
+  }
+  dialog.dialog[data-closing="true"][open] {
+    animation: dialog-out 160ms ease both;
+  }
+  dialog.dialog[data-closing="true"][open]::backdrop {
+    animation: fade-out 160ms ease both;
   }
 }
