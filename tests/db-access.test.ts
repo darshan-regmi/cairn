@@ -12,7 +12,7 @@ import {
   findTaskForUser,
   listCommentsForTarget,
   listCommentsForTargets,
-  listArchivedProjectsForUser,
+  listCompletedProjectsForUser,
   listOwnedProjectsForUser,
   listProjectsForUser,
   listSupervisedProjectsForUser,
@@ -643,18 +643,19 @@ describeDb("DB-backed authorization", () => {
     });
   });
 
-  describe("archived projects", () => {
-    let archivedProjectId = "";
-    const archivedToken = "c".repeat(32);
+  describe("completed projects", () => {
+    let completedProjectId = "";
+    const completedToken = "c".repeat(32);
 
     beforeAll(async () => {
       const project = await prisma.project.create({
         data: {
-          title: `Archived plan ${Date.now()}`,
+          title: `Completed plan ${Date.now()}`,
           startDate: new Date(2026, 0, 1),
           endDate: new Date(2026, 11, 31),
-          shareToken: archivedToken,
-          archivedAt: new Date(),
+          shareToken: completedToken,
+          status: "COMPLETE",
+          completedAt: new Date(),
           members: {
             create: [
               { userId: ownerId, role: "OWNER" },
@@ -663,49 +664,50 @@ describeDb("DB-backed authorization", () => {
           },
         },
       });
-      archivedProjectId = project.id;
+      completedProjectId = project.id;
       createdProjectIds.push(project.id);
     });
 
-    it("hides an archived project from the dashboard and member lists", async () => {
+    it("hides a completed project from the dashboard and member lists", async () => {
       const dashboard = await findDashboardForUser(ownerId);
-      expect(dashboard.some((p) => p.id === archivedProjectId)).toBe(false);
+      expect(dashboard.some((p) => p.id === completedProjectId)).toBe(false);
 
       const owned = await listOwnedProjectsForUser(ownerId);
-      expect(owned.some((p) => p.id === archivedProjectId)).toBe(false);
+      expect(owned.some((p) => p.id === completedProjectId)).toBe(false);
 
       const supervised = await listSupervisedProjectsForUser(supervisorId);
-      expect(supervised.some((p) => p.id === archivedProjectId)).toBe(false);
+      expect(supervised.some((p) => p.id === completedProjectId)).toBe(false);
 
       const member = await listProjectsForUser(ownerId);
-      expect(member.some((p) => p.id === archivedProjectId)).toBe(false);
+      expect(member.some((p) => p.id === completedProjectId)).toBe(false);
     });
 
-    it("lists it under archived for its owner only", async () => {
-      const archived = await listArchivedProjectsForUser(ownerId);
-      expect(archived.some((p) => p.id === archivedProjectId)).toBe(true);
+    it("lists it under completed for its owner only", async () => {
+      const completed = await listCompletedProjectsForUser(ownerId);
+      expect(completed.some((p) => p.id === completedProjectId)).toBe(true);
 
-      const supervisorArchived = await listArchivedProjectsForUser(supervisorId);
-      expect(supervisorArchived.some((p) => p.id === archivedProjectId)).toBe(
-        false,
-      );
+      const supervisorCompleted =
+        await listCompletedProjectsForUser(supervisorId);
+      expect(
+        supervisorCompleted.some((p) => p.id === completedProjectId),
+      ).toBe(false);
     });
 
-    it("pauses the public share link while archived", async () => {
-      expect(await findSharedProject(archivedToken)).toBeNull();
+    it("pauses the public share link while complete", async () => {
+      expect(await findSharedProject(completedToken)).toBeNull();
     });
 
-    it("returns to the dashboard once restored", async () => {
+    it("returns to the dashboard once reopened", async () => {
       await prisma.project.update({
-        where: { id: archivedProjectId },
-        data: { archivedAt: null },
+        where: { id: completedProjectId },
+        data: { status: "IN_PROGRESS", completedAt: null },
       });
 
       const dashboard = await findDashboardForUser(ownerId);
-      expect(dashboard.some((p) => p.id === archivedProjectId)).toBe(true);
-      const archived = await listArchivedProjectsForUser(ownerId);
-      expect(archived.some((p) => p.id === archivedProjectId)).toBe(false);
-      expect(await findSharedProject(archivedToken)).not.toBeNull();
+      expect(dashboard.some((p) => p.id === completedProjectId)).toBe(true);
+      const completed = await listCompletedProjectsForUser(ownerId);
+      expect(completed.some((p) => p.id === completedProjectId)).toBe(false);
+      expect(await findSharedProject(completedToken)).not.toBeNull();
     });
   });
 });

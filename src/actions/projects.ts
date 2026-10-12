@@ -9,15 +9,24 @@ import { ownerWhere } from "@/lib/access";
 import {
   createMilestoneSchema,
   createProjectSchema,
+  deleteMilestoneSchema,
   importProjectSchema,
   milestoneStatusSchema,
   projectIdSchema,
-  rescheduleMilestoneSchema,
   saveMilestoneDetailsSchema,
+  updateMilestoneSchema,
+  updateProjectSchema,
 } from "@/lib/validation";
 import { parseProjectCsv } from "@/lib/csv-import";
 
 export type ProjectActionState = { success: boolean; error?: string };
+
+/** Refresh every page that lists projects, so a change shows up everywhere. */
+function revalidateProjectLists(projectId?: string) {
+  revalidatePath("/dashboard");
+  revalidatePath("/projects");
+  if (projectId) revalidatePath(`/projects/${projectId}`);
+}
 
 export async function createProjectAction(
   _prev: ProjectActionState,
@@ -28,6 +37,7 @@ export async function createProjectAction(
 
   const parsed = createProjectSchema.safeParse({
     title: formData.get("title"),
+    goal: formData.get("goal"),
     startDate: formData.get("startDate"),
     endDate: formData.get("endDate"),
   });
@@ -41,13 +51,14 @@ export async function createProjectAction(
   const project = await prisma.project.create({
     data: {
       title: parsed.data.title,
+      goal: parsed.data.goal,
       startDate: new Date(`${parsed.data.startDate}T00:00:00`),
       endDate: new Date(`${parsed.data.endDate}T00:00:00`),
       members: { create: { userId: session.user.id, role: "OWNER" } },
     },
   });
 
-  revalidatePath("/projects");
+  revalidateProjectLists();
   redirect(`/projects/${project.id}`);
 }
 
@@ -135,7 +146,7 @@ export async function importProjectAction(
     return created;
   });
 
-  revalidatePath("/projects");
+  revalidateProjectLists();
   redirect(`/projects/${project.id}`);
 }
 
@@ -319,18 +330,28 @@ export async function moveMilestoneAction(formData: FormData) {
   revalidatePath(`/projects/${milestone.projectId}`);
 }
 
-/** Change a milestone's planned dates without touching its tasks. */
-export async function rescheduleMilestoneAction(
+/** Refresh the project page, the board, and the supervisor's read-only view. */
+function revalidateMilestone(projectId: string, milestoneId: string) {
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath(`/projects/${projectId}/milestones/${milestoneId}`);
+  revalidatePath(`/supervisor/${projectId}`);
+  revalidateProjectLists(projectId);
+}
+
+/** Edit a milestone's name, goal and planned dates without touching its tasks. */
+export async function updateMilestoneAction(
   _prev: ProjectActionState,
   formData: FormData,
 ): Promise<ProjectActionState> {
   const session = await auth();
   if (!session?.user) return { success: false, error: "Not signed in." };
 
-  const parsed = rescheduleMilestoneSchema.safeParse({
+  const parsed = updateMilestoneSchema.safeParse({
     milestoneId: formData.get("milestoneId"),
+    name: formData.get("name"),
     plannedStart: formData.get("plannedStart"),
     plannedEnd: formData.get("plannedEnd"),
+    goal: formData.get("goal"),
   });
   if (!parsed.success) {
     return {
@@ -348,22 +369,85 @@ export async function rescheduleMilestoneAction(
   await prisma.milestone.update({
     where: { id: milestone.id },
     data: {
+      name: parsed.data.name,
+      goal: parsed.data.goal,
       plannedStart: new Date(`${parsed.data.plannedStart}T00:00:00`),
       plannedEnd: new Date(`${parsed.data.plannedEnd}T00:00:00`),
     },
   });
 
-  revalidatePath(`/projects/${milestone.projectId}`);
-  revalidatePath(`/projects/${milestone.projectId}/milestones/${milestone.id}`);
-  revalidatePath(`/supervisor/${milestone.projectId}`);
+  revalidateMilestone(milestone.projectId, milestone.id);
+  return { success: true };
+}
+
+/** Delete a milestone and everything hanging off it (tasks, review, notes). */
+export async function deleteMilestoneAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const parsed = deleteMilestoneSchema.safeParse({
+    milestoneId: formData.get("milestoneId"),
+  });
+  if (!parsed.success) return;
+
+  const milestone = await prisma.milestone.findFirst({
+    where: { id: parsed.data.milestoneId, project: ownerWhere(session.user.id) },
+    select: { id: true, projectId: true },
+  });
+  if (!milestone) return;
+
+  await prisma.milestone.delete({ where: { id: milestone.id } });
+  revalidateMilestone(milestone.projectId, milestone.id);
+}
+
+/** Edit a project's title, goal and dates. Owner only. */
+export async function updateProjectAction(
+  _prev: ProjectActionState,
+  formData: FormData,
+): Promise<ProjectActionState> {
+  const session = await auth();
+  if (!session?.user) return { success: false, error: "Not signed in." };
+
+  const parsed = updateProjectSchema.safeParse({
+    projectId: formData.get("projectId"),
+    title: formData.get("title"),
+    goal: formData.get("goal"),
+    startDate: formData.get("startDate"),
+    endDate: formData.get("endDate"),
+  });
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+
+  const project = await prisma.project.findFirst({
+    where: { id: parsed.data.projectId, ...ownerWhere(session.user.id) },
+    select: { id: true },
+  });
+  if (!project) return { success: false, error: "Project not found." };
+
+  await prisma.project.update({
+    where: { id: project.id },
+    data: {
+      title: parsed.data.title,
+      goal: parsed.data.goal,
+      startDate: new Date(`${parsed.data.startDate}T00:00:00`),
+      endDate: new Date(`${parsed.data.endDate}T00:00:00`),
+    },
+  });
+
+  revalidateProjectLists(project.id);
+  revalidatePath(`/supervisor/${project.id}`);
   return { success: true };
 }
 
 /**
- * Archive a project: it drops off the dashboard, member lists and public share
- * link, but nothing is deleted and the owner can restore it at any time.
+ * Complete a project: it leaves the dashboard and joins the archive. This is
+ * the only way a project is archived — there is no manual archive step.
  */
-export async function archiveProjectAction(formData: FormData) {
+export async function completeProjectAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return;
 
@@ -380,16 +464,15 @@ export async function archiveProjectAction(formData: FormData) {
 
   await prisma.project.update({
     where: { id: project.id },
-    data: { archivedAt: new Date() },
+    data: { status: "COMPLETE", completedAt: new Date() },
   });
 
-  revalidatePath("/projects");
-  revalidatePath(`/projects/${project.id}`);
+  revalidateProjectLists(project.id);
   revalidatePath(`/supervisor/${project.id}`);
 }
 
-/** Bring an archived project back to the dashboard. Owner only. */
-export async function restoreProjectAction(formData: FormData) {
+/** Reopen a completed project so it is active again. Owner only. */
+export async function reopenProjectAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return;
 
@@ -406,10 +489,30 @@ export async function restoreProjectAction(formData: FormData) {
 
   await prisma.project.update({
     where: { id: project.id },
-    data: { archivedAt: null },
+    data: { status: "IN_PROGRESS", completedAt: null },
   });
 
-  revalidatePath("/projects");
-  revalidatePath(`/projects/${project.id}`);
+  revalidateProjectLists(project.id);
   revalidatePath(`/supervisor/${project.id}`);
+}
+
+/** Delete a project and everything in it. Owner only, permanent. */
+export async function deleteProjectAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const parsed = projectIdSchema.safeParse({
+    projectId: formData.get("projectId"),
+  });
+  if (!parsed.success) return;
+
+  const project = await prisma.project.findFirst({
+    where: { id: parsed.data.projectId, ...ownerWhere(session.user.id) },
+    select: { id: true },
+  });
+  if (!project) return;
+
+  await prisma.project.delete({ where: { id: project.id } });
+  revalidateProjectLists();
+  redirect("/projects");
 }

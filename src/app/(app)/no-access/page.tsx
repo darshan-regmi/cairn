@@ -21,7 +21,7 @@ export default function NoAccessPage() {
         the project owner to invite you.
       </p>
       <Link
-        href="/projects"
+        href="/dashboard"
         className="mt-6 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
       >
         Back to your dashboard

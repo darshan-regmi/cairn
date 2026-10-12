@@ -18,5 +18,6 @@ export async function markCommentsReadAction() {
     data: { commentsReadAt: new Date() },
   });
 
+  revalidatePath("/dashboard");
   revalidatePath("/projects");
 }

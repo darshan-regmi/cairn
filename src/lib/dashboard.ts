@@ -5,6 +5,7 @@
 import {
   daysBetween,
   daysLeft,
+  isCurrent,
   isOverdue,
   taskProgress,
   toStartOfDay,
@@ -23,6 +24,7 @@ export interface DashboardMilestoneInput {
   id: string;
   name: string;
   status: string;
+  plannedStart?: Date | null;
   plannedEnd: Date;
   tasks: DashboardTaskInput[];
 }
@@ -166,6 +168,33 @@ export interface DashboardSummary {
   openQuestions: OpenQuestion[];
   unreadComments: UnreadComment[];
   projects: DashboardProjectSummary[];
+}
+
+export interface ActiveMilestone {
+  id: string;
+  name: string;
+  status: string;
+  plannedStart: Date | null;
+  plannedEnd: Date;
+  daysUntilEnd: number;
+  progress: TaskProgress;
+}
+
+export interface InProgressTask {
+  id: string;
+  title: string;
+  priority: string;
+  due: Date | null;
+  daysUntilDue: number | null;
+  overdue: boolean;
+  milestoneId: string;
+  milestoneName: string;
+}
+
+/** What a single project is doing right now: the phase and its live tasks. */
+export interface ActiveWork {
+  milestone: ActiveMilestone | null;
+  tasks: InProgressTask[];
 }
 
 /** Default cap on the "Coming up" list so the overview stays glanceable. */
@@ -357,5 +386,63 @@ export function summarizeDashboard(
     openQuestions,
     unreadComments,
     projects: summaries,
+  };
+}
+
+/** Earliest due date first; undated tasks sink to the bottom. */
+function byDueDate(a: Date | null, b: Date | null): number {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+  return toStartOfDay(a).getTime() - toStartOfDay(b).getTime();
+}
+
+/**
+ * The single project's "right now": which phase is in progress and the tasks
+ * moving on it. The phase is the first one marked IN_PROGRESS; failing that,
+ * the first open phase whose planned dates contain today; failing that, the
+ * first open phase. `tasks` collects every IN_PROGRESS task in the project.
+ */
+export function pickActiveWork(
+  milestones: DashboardMilestoneInput[],
+  today: Date,
+): ActiveWork {
+  const open = milestones.filter((milestone) => milestone.status !== "DONE");
+  const milestone =
+    open.find((item) => item.status === "IN_PROGRESS") ??
+    open.find((item) => isCurrent(item, today)) ??
+    open[0] ??
+    null;
+
+  const tasks: InProgressTask[] = milestones
+    .flatMap((item) =>
+      item.tasks
+        .filter((task) => task.status === "IN_PROGRESS")
+        .map((task) => ({
+          id: task.id,
+          title: task.title,
+          priority: task.priority,
+          due: task.due,
+          daysUntilDue: task.due ? daysBetween(today, task.due) : null,
+          overdue: task.due ? isOverdue(task, today) : false,
+          milestoneId: item.id,
+          milestoneName: item.name,
+        })),
+    )
+    .sort((a, b) => byDueDate(a.due, b.due));
+
+  return {
+    milestone: milestone
+      ? {
+          id: milestone.id,
+          name: milestone.name,
+          status: milestone.status,
+          plannedStart: milestone.plannedStart ?? null,
+          plannedEnd: milestone.plannedEnd,
+          daysUntilEnd: daysLeft(milestone, today),
+          progress: taskProgress(milestone.tasks),
+        }
+      : null,
+    tasks,
   };
 }

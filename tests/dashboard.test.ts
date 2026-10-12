@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  pickActiveWork,
   summarizeDashboard,
   type DashboardMilestoneInput,
   type DashboardProjectInput,
@@ -370,5 +371,104 @@ describe("summarizeDashboard extras", () => {
 
     expect(summary.unreadComments.map((c) => c.id)).toEqual(["fresh"]);
     expect(summary.unreadComments[0].link).toBe("/projects/a/meetings");
+  });
+});
+
+function datedMilestone(
+  id: string,
+  status: string,
+  plannedStart: Date,
+  plannedEnd: Date,
+  tasks: DashboardTaskInput[] = [],
+): DashboardMilestoneInput {
+  return {
+    id,
+    name: `Milestone ${id}`,
+    status,
+    plannedStart,
+    plannedEnd,
+    tasks,
+  };
+}
+
+describe("pickActiveWork", () => {
+  it("prefers the phase explicitly marked in progress", () => {
+    const work = pickActiveWork(
+      [
+        datedMilestone("a", "PLANNED", new Date(2026, 5, 1), new Date(2026, 5, 30)),
+        datedMilestone("b", "IN_PROGRESS", new Date(2026, 6, 1), new Date(2026, 6, 30)),
+      ],
+      TODAY,
+    );
+
+    expect(work.milestone?.id).toBe("b");
+  });
+
+  it("falls back to the open phase whose dates contain today", () => {
+    const work = pickActiveWork(
+      [
+        datedMilestone("later", "PLANNED", new Date(2026, 7, 1), new Date(2026, 8, 1)),
+        datedMilestone("now", "PLANNED", new Date(2026, 5, 1), new Date(2026, 6, 1)),
+      ],
+      TODAY,
+    );
+
+    expect(work.milestone?.id).toBe("now");
+  });
+
+  it("falls back to the first open phase when none is current", () => {
+    const work = pickActiveWork(
+      [
+        datedMilestone("first", "SLIPPED", new Date(2026, 0, 1), new Date(2026, 1, 1)),
+        datedMilestone("second", "PLANNED", new Date(2026, 2, 1), new Date(2026, 3, 1)),
+      ],
+      TODAY,
+    );
+
+    expect(work.milestone?.id).toBe("first");
+  });
+
+  it("returns no phase and no tasks when everything is done", () => {
+    const work = pickActiveWork(
+      [datedMilestone("done", "DONE", new Date(2026, 0, 1), new Date(2026, 1, 1))],
+      TODAY,
+    );
+
+    expect(work.milestone).toBeNull();
+    expect(work.tasks).toEqual([]);
+  });
+
+  it("collects in-progress tasks across the project, earliest due first", () => {
+    const work = pickActiveWork(
+      [
+        datedMilestone(
+          "a",
+          "IN_PROGRESS",
+          new Date(2026, 5, 1),
+          new Date(2026, 6, 1),
+          [
+            task("later", { status: "IN_PROGRESS", due: new Date(2026, 5, 20) }),
+            task("todo", { status: "TODO", due: new Date(2026, 5, 1) }),
+          ],
+        ),
+        datedMilestone(
+          "b",
+          "PLANNED",
+          new Date(2026, 6, 1),
+          new Date(2026, 7, 1),
+          [
+            task("late", { status: "IN_PROGRESS", due: new Date(2026, 5, 1) }),
+            task("undated", { status: "IN_PROGRESS" }),
+          ],
+        ),
+      ],
+      TODAY,
+    );
+
+    expect(work.tasks.map((t) => t.id)).toEqual(["late", "later", "undated"]);
+    expect(work.tasks[0].overdue).toBe(true);
+    expect(work.tasks[1].daysUntilDue).toBe(5);
+    expect(work.tasks[2].daysUntilDue).toBeNull();
+    expect(work.tasks[0].milestoneName).toBe("Milestone b");
   });
 });

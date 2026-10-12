@@ -2,8 +2,9 @@
 
 import { useId, useState, useTransition } from "react";
 import {
+  deleteMilestoneAction,
   moveMilestoneAction,
-  rescheduleMilestoneAction,
+  updateMilestoneAction,
 } from "@/actions/projects";
 
 const inputClass =
@@ -54,13 +55,17 @@ export function MoveMilestoneButtons({
   );
 }
 
-/** Inline form to change a milestone's planned dates. */
-export function RescheduleMilestonePanel({
+/** Inline form to edit a milestone's name, goal and planned dates. */
+export function EditMilestonePanel({
   milestoneId,
+  name,
+  goal,
   plannedStart,
   plannedEnd,
 }: {
   milestoneId: string;
+  name: string;
+  goal: string;
   plannedStart: string;
   plannedEnd: string;
 }) {
@@ -73,12 +78,12 @@ export function RescheduleMilestonePanel({
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     startTransition(async () => {
-      const result = await rescheduleMilestoneAction({ success: false }, formData);
+      const result = await updateMilestoneAction({ success: false }, formData);
       if (result.success) {
         setError(null);
         setOpen(false);
       } else {
-        setError(result.error ?? "Could not reschedule the milestone.");
+        setError(result.error ?? "Could not save the milestone.");
       }
     });
   }
@@ -90,7 +95,7 @@ export function RescheduleMilestonePanel({
         onClick={() => setOpen(true)}
         className="rounded px-1 text-xs text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        Reschedule
+        Edit
       </button>
     );
   }
@@ -102,7 +107,40 @@ export function RescheduleMilestonePanel({
       className="mt-3 w-full rounded-lg border border-edge bg-accent/5 p-4"
     >
       <input type="hidden" name="milestoneId" value={milestoneId} />
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="space-y-1">
+        <label
+          htmlFor={`${uid}-name`}
+          className="block text-xs font-medium text-muted"
+        >
+          Name
+        </label>
+        <input
+          id={`${uid}-name`}
+          name="name"
+          type="text"
+          required
+          maxLength={120}
+          defaultValue={name}
+          className={inputClass}
+        />
+      </div>
+      <div className="mt-3 space-y-1">
+        <label
+          htmlFor={`${uid}-goal`}
+          className="block text-xs font-medium text-muted"
+        >
+          Goal <span className="font-normal">(optional)</span>
+        </label>
+        <textarea
+          id={`${uid}-goal`}
+          name="goal"
+          rows={2}
+          maxLength={500}
+          defaultValue={goal}
+          className={inputClass}
+        />
+      </div>
+      <div className="mt-3 flex flex-wrap items-end gap-3">
         <div className="space-y-1">
           <label
             htmlFor={`${uid}-start`}
@@ -138,9 +176,9 @@ export function RescheduleMilestonePanel({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
+          className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink transition-transform duration-150 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink motion-safe:active:scale-[0.97]"
         >
-          {pending ? "Saving…" : "Save dates"}
+          {pending ? "Saving…" : "Save changes"}
         </button>
         <button
           type="button"
@@ -148,7 +186,7 @@ export function RescheduleMilestonePanel({
             setError(null);
             setOpen(false);
           }}
-          className="rounded-md border border-edge px-3 py-1.5 text-sm"
+          className="rounded-md border border-edge px-3 py-1.5 text-sm transition-colors hover:bg-accent/10"
         >
           Cancel
         </button>
@@ -156,6 +194,48 @@ export function RescheduleMilestonePanel({
       {error && (
         <p className="mt-2 text-sm text-red-700 dark:text-red-400">{error}</p>
       )}
+    </form>
+  );
+}
+
+/** Two-step delete: the first click asks, the second removes the milestone. */
+export function DeleteMilestoneButton({
+  milestoneId,
+  milestoneName,
+}: {
+  milestoneId: string;
+  milestoneName: string;
+}) {
+  const [confirming, setConfirming] = useState(false);
+
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="rounded px-1 text-xs text-muted transition-colors hover:text-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent dark:hover:text-red-400"
+      >
+        Delete
+      </button>
+    );
+  }
+
+  return (
+    <form action={deleteMilestoneAction} className="inline-flex items-center gap-2">
+      <input type="hidden" name="milestoneId" value={milestoneId} />
+      <button
+        type="submit"
+        className="text-xs font-medium text-red-700 dark:text-red-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        Delete “{milestoneName}”?
+      </button>
+      <button
+        type="button"
+        onClick={() => setConfirming(false)}
+        className="rounded px-1 text-xs text-muted transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        Cancel
+      </button>
     </form>
   );
 }

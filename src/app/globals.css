@@ -91,3 +91,90 @@ body {
     font-family: var(--font-mono);
   }
 }
+
+/*
+ * Motion: subtle, physical, and always optional. Every rule sits behind a
+ * no-preference media query, so anyone who asks for reduced motion gets the
+ * final state with no animation at all.
+ */
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* A page or section settling into place. */
+  .page-enter {
+    animation: rise-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* Children of a stagger container rise in sequence. The delay is capped so
+     long lists never feel slow, then flattened for the ninth item onward. */
+  .stagger-list > * {
+    animation: rise-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .stagger-list > *:nth-child(2) {
+    animation-delay: 40ms;
+  }
+  .stagger-list > *:nth-child(3) {
+    animation-delay: 80ms;
+  }
+  .stagger-list > *:nth-child(4) {
+    animation-delay: 120ms;
+  }
+  .stagger-list > *:nth-child(5) {
+    animation-delay: 160ms;
+  }
+  .stagger-list > *:nth-child(6) {
+    animation-delay: 200ms;
+  }
+  .stagger-list > *:nth-child(7) {
+    animation-delay: 240ms;
+  }
+  .stagger-list > *:nth-child(8) {
+    animation-delay: 280ms;
+  }
+  .stagger-list > *:nth-child(n + 9) {
+    animation-delay: 320ms;
+  }
+
+  /* A card lifting toward the pointer; the shadow deepens to sell the depth. */
+  .card-hover {
+    transition:
+      transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 200ms ease,
+      box-shadow 200ms ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--app-accent) 45%, var(--app-edge));
+    box-shadow: 0 14px 30px -20px rgb(1 7 54 / 0.5);
+  }
+}

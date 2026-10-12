@@ -7,10 +7,23 @@ import type { CommentTarget } from "@/lib/validation";
 // projects the user is a member of (owner or supervisor). Server actions and
 // pages build on these, so access is enforced in one place.
 
-/** Projects the user owns (student workspace list). */
+/** Projects the user owns and is still working on. */
 export function listOwnedProjectsForUser(userId: string) {
   return prisma.project.findMany({
-    where: { ...ownerWhere(userId), archivedAt: null },
+    where: { ...ownerWhere(userId), status: "IN_PROGRESS" },
+    orderBy: { createdAt: "desc" },
+    include: { _count: { select: { milestones: true } } },
+  });
+}
+
+/**
+ * Every project the user owns, active and complete. The all-projects page
+ * splits these into "in progress" and "archived" rather than issuing two
+ * queries, so a project can never appear in both lists.
+ */
+export function listAllOwnedProjectsForUser(userId: string) {
+  return prisma.project.findMany({
+    where: ownerWhere(userId),
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { milestones: true } } },
   });
@@ -23,7 +36,7 @@ export function listOwnedProjectsForUser(userId: string) {
  */
 export function findDashboardForUser(userId: string) {
   return prisma.project.findMany({
-    where: { ...ownerWhere(userId), archivedAt: null },
+    where: { ...ownerWhere(userId), status: "IN_PROGRESS" },
     orderBy: { createdAt: "desc" },
     include: {
       milestones: {
@@ -105,11 +118,11 @@ export async function projectExists(projectId: string): Promise<boolean> {
   return project !== null;
 }
 
-/** Projects the user owns but has archived (hidden from the dashboard). */
-export function listArchivedProjectsForUser(userId: string) {
+/** Projects the user owns and has completed (the archive). */
+export function listCompletedProjectsForUser(userId: string) {
   return prisma.project.findMany({
-    where: { ...ownerWhere(userId), archivedAt: { not: null } },
-    orderBy: { archivedAt: "desc" },
+    where: { ...ownerWhere(userId), status: "COMPLETE" },
+    orderBy: { completedAt: "desc" },
     include: { _count: { select: { milestones: true } } },
   });
 }
@@ -119,7 +132,7 @@ export function listSupervisedProjectsForUser(userId: string) {
   return prisma.project.findMany({
     where: {
       members: { some: { userId, role: "SUPERVISOR" } },
-      archivedAt: null,
+      status: "IN_PROGRESS",
     },
     orderBy: { createdAt: "desc" },
     include: {
@@ -141,7 +154,7 @@ export function listSupervisedProjectsForUser(userId: string) {
 
 export function listProjectsForUser(userId: string) {
   return prisma.project.findMany({
-    where: { ...memberWhere(userId), archivedAt: null },
+    where: { ...memberWhere(userId), status: "IN_PROGRESS" },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { milestones: true } } },
   });
@@ -208,7 +221,7 @@ export async function findSharedProject(token: string, now = new Date()) {
       },
     },
   });
-  if (!project || project.archivedAt) return null;
+  if (!project || project.status === "COMPLETE") return null;
   if (!isShareActive(project, now)) return null;
   return project;
 }

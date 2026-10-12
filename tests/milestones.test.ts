@@ -1,17 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { rescheduleMilestoneSchema } from "@/lib/validation";
+import { updateMilestoneSchema } from "@/lib/validation";
 
 const base = {
   milestoneId: "m1",
+  name: "Milestone one",
   plannedStart: "2026-06-01",
   plannedEnd: "2026-06-30",
 };
 
-describe("rescheduleMilestoneSchema", () => {
+describe("updateMilestoneSchema", () => {
   it("accepts an end date on or after the start", () => {
-    expect(rescheduleMilestoneSchema.safeParse(base).success).toBe(true);
+    expect(updateMilestoneSchema.safeParse(base).success).toBe(true);
     expect(
-      rescheduleMilestoneSchema.safeParse({
+      updateMilestoneSchema.safeParse({
         ...base,
         plannedStart: "2026-06-15",
         plannedEnd: "2026-06-15",
@@ -20,7 +21,7 @@ describe("rescheduleMilestoneSchema", () => {
   });
 
   it("rejects an end date before the start", () => {
-    const result = rescheduleMilestoneSchema.safeParse({
+    const result = updateMilestoneSchema.safeParse({
       ...base,
       plannedStart: "2026-06-30",
       plannedEnd: "2026-06-01",
@@ -31,9 +32,15 @@ describe("rescheduleMilestoneSchema", () => {
     }
   });
 
+  it("requires a name", () => {
+    expect(
+      updateMilestoneSchema.safeParse({ ...base, name: "" }).success,
+    ).toBe(false);
+  });
+
   it("requires YYYY-MM-DD dates", () => {
     expect(
-      rescheduleMilestoneSchema.safeParse({
+      updateMilestoneSchema.safeParse({
         ...base,
         plannedStart: "01/06/2026",
       }).success,

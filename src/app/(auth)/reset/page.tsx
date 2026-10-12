@@ -5,7 +5,7 @@ import { RequestResetForm } from "@/components/auth/RequestResetForm";
 
 export default async function ResetRequestPage() {
   const session = await auth();
-  if (session?.user) redirect("/projects");
+  if (session?.user) redirect("/dashboard");
 
   return (
     <div className="space-y-6">

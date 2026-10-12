@@ -80,8 +80,9 @@ src/
     page.tsx            # public landing page
     docs/               # public documentation
     (app)/              # protected pages (auth guard + header live here)
+      dashboard/        # focus view for your active project: what is happening now
       no-access/        # 403 view for a project you don't belong to
-      projects/         # dashboard overview + project grid + create/import + archived list
+      projects/         # all your projects: grid + create/import + archived (completed)
       projects/[projectId]/            # milestone timeline + supervisors + share link
       projects/[projectId]/milestones/[milestoneId]  # kanban board + evidence + review + comments
       projects/[projectId]/meetings/   # supervision meeting log + action -> task
@@ -101,7 +102,7 @@ src/
   actions/
     auth.ts             # server action: sign-up (role choice, ALLOW_SIGNUP gate)
     reset.ts            # request + complete a password reset
-    projects.ts         # createProject, importProject, milestone CRUD + move/reschedule/details, archive/restore
+    projects.ts         # createProject, importProject, milestone CRUD + move/details, project edit/complete/reopen/delete
     deliverables.ts     # add/toggle/update/delete milestone deliverables
     dashboard.ts        # markCommentsRead (supervisor-comment watermark)
     tasks.ts            # saveTask, deleteTask, moveTasks
@@ -114,8 +115,8 @@ src/
     evidence.ts         # createEvidence, updateEvidence, deleteEvidence (owner only)
   components/
     auth/               # sign-in / sign-up / password-reset client forms
-    projects/           # create-project + CSV import forms + archive controls
-    timeline/           # add-milestone form, status control, move/reschedule controls
+    projects/           # create/edit-project + CSV import forms + complete/reopen/delete controls
+    timeline/           # add-milestone form, status control, move/edit/delete controls
     kanban/             # KanbanBoard (dnd-kit), TaskDialog
     invites/            # invite-supervisor + accept-invite forms
     comments/           # CommentSection (thread with edit/delete), reused on
@@ -227,11 +228,14 @@ Importing the same title + dates twice for the same user is refused.
   / promised notes. Owners record, edit and delete it on the board; the verdict
   shows on the project timeline, and supervisors read the review (their
   feedback still lives in comments).
-- **Dashboard (done):** the dashboard at `/projects` is a cross-project
-  overview — totals for projects, milestones and tasks done, plus lists of
-  overdue and blocked tasks, work due this week, milestones coming up, prep for
-  your latest meeting, questions still waiting on a decision, and new comments
-  from your supervisor (clearable in one click), above your project cards.
+- **Focus dashboard (done):** `/dashboard` is a focus view for one active
+  project — at-a-glance totals, the phase that is in progress with the tasks
+  being worked on right now, and what is due this week, with a switcher when
+  more than one project is in progress. `/projects` holds every project you
+  own, split into **in progress** and **archived**: complete a project to move
+  it to the archive (its share link pauses), reopen it any time, or edit and
+  delete projects and milestones. New supervisor comments surface on the
+  dashboard and clear in one click.
 - **Public share link (done):** the owner can mint a read-only link to a
   project. Anyone holding it can view the milestones, their tasks and the
   review verdicts with no account, and the owner can set an optional expiry or

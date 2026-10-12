@@ -11,7 +11,7 @@ export default async function ResetTokenPage({
   params: Promise<{ token: string }>;
 }) {
   const session = await auth();
-  if (session?.user) redirect("/projects");
+  if (session?.user) redirect("/dashboard");
 
   const { token } = await params;
   const record = await prisma.passwordResetToken.findUnique({

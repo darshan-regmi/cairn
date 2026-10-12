@@ -67,7 +67,7 @@ export default async function DocsPage() {
           <Link href="/" className={quietLink}>
             Home
           </Link>
-          <Link href={signedIn ? "/projects" : "/login"} className={accentButton}>
+          <Link href={signedIn ? "/dashboard" : "/login"} className={accentButton}>
             {signedIn ? "Go to dashboard" : "Log in"}
           </Link>
         </nav>
@@ -109,22 +109,28 @@ export default async function DocsPage() {
 
       <Section id="dashboard" title="The dashboard">
         <p>
-          The dashboard is your starting point. It shows every project you own
-          with a progress bar, and calls out:
+          The dashboard is your focus view. It shows the one project you are
+          working on and calls out:
         </p>
         <ul className="list-disc space-y-1 pl-5">
-          <li>work that is behind schedule — overdue and blocked tasks;</li>
-          <li>tasks due within the next seven days;</li>
-          <li>milestones coming up;</li>
-          <li>prep for your latest meeting, including its open actions;</li>
-          <li>questions still waiting on a decision; and</li>
-          <li>new comments from your supervisor, which you can mark as read.</li>
+          <li>how far along the project is, and how many days it has left;</li>
+          <li>
+            the phase that is in progress, with the tasks being worked on now;
+            and
+          </li>
+          <li>
+            tasks due within the next seven days, plus new comments from your
+            supervisor.
+          </li>
         </ul>
         <p>
-          Every project card has an <strong>Archive</strong> action. Archiving
-          hides a project from your dashboard and pauses its share link without
-          deleting anything; archived projects move to their own list, where you
-          can restore them.
+          When more than one project is in progress a switcher at the top lets
+          you choose which one to focus. The <strong>Projects</strong> page holds
+          everything you own: <strong>complete</strong> a project to move it to
+          the archive and pause its share link without deleting anything, then{" "}
+          <strong>reopen</strong> it any time, or edit and delete projects and
+          milestones. There is no separate archive button — finishing a project
+          is what archives it.
         </p>
       </Section>
 
@@ -136,8 +142,8 @@ export default async function DocsPage() {
         </p>
         <p>
           On the project timeline you can reorder milestones with the move
-          controls and reschedule them by giving new dates. You can also give a
-          milestone a <strong>scope</strong> and a{" "}
+          controls, edit a milestone (its name, goal and dates) or delete it.
+          You can also give a milestone a <strong>scope</strong> and a{" "}
           <strong>definition of done</strong>, and list{" "}
           <strong>deliverables</strong>: a checklist of concrete outputs, each
           with an optional link.
@@ -256,7 +262,7 @@ export default async function DocsPage() {
           <Link href="/" className={quietLink}>
             Home
           </Link>
-          <Link href={signedIn ? "/projects" : "/login"} className={quietLink}>
+          <Link href={signedIn ? "/dashboard" : "/login"} className={quietLink}>
             {signedIn ? "Dashboard" : "Log in"}
           </Link>
         </nav>

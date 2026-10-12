@@ -39,7 +39,7 @@ export default function Error({
           Try again
         </button>
         <Link
-          href="/projects"
+          href="/dashboard"
           className="rounded-md border border-edge px-4 py-2 text-sm font-medium transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Go to dashboard

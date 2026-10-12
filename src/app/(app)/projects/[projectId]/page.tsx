@@ -17,23 +17,28 @@ import { StatusBadge } from "@/components/StatusBadge";
 import {
   milestoneStatusLabel,
   milestoneStatusTone,
+  projectStatusLabel,
+  projectStatusTone,
   reviewVerdictLabel,
   reviewVerdictTone,
   type MilestoneStatus,
+  type ProjectStatus,
   type ReviewVerdict,
 } from "@/lib/status";
 import { AddMilestoneForm } from "@/components/timeline/AddMilestoneForm";
 import { MilestoneStatusControl } from "@/components/timeline/MilestoneStatusControl";
 import {
+  DeleteMilestoneButton,
+  EditMilestonePanel,
   MoveMilestoneButtons,
-  RescheduleMilestonePanel,
 } from "@/components/timeline/MilestoneControls";
 import { InviteSupervisorForm } from "@/components/invites/InviteSupervisorForm";
 import { ShareLinkPanel } from "@/components/share/ShareLinkPanel";
 import {
-  ArchiveProjectButton,
-  RestoreProjectButton,
-} from "@/components/projects/ProjectArchiveControls";
+  CompleteProjectButton,
+  DeleteProjectButton,
+  ReopenProjectButton,
+} from "@/components/projects/ProjectStatusControls";
 
 function daysLeftLabel(days: number): string {
   if (days === 0) return "Ends today";
@@ -100,9 +105,13 @@ export default async function ProjectTimelinePage({
 
       <header className="mt-2 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl tracking-tight">
-            {project.title}
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl tracking-tight">{project.title}</h1>
+            <StatusBadge
+              label={projectStatusLabel[project.status as ProjectStatus]}
+              tone={projectStatusTone[project.status as ProjectStatus]}
+            />
+          </div>
           {project.goal && (
             <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">
               {project.goal}
@@ -135,15 +144,20 @@ export default async function ProjectTimelinePage({
         <AddMilestoneForm projectId={project.id} />
       </header>
 
-      {project.archivedAt && (
+      {project.status === "COMPLETE" && (
         <section
           role="status"
-          className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent/5 p-4"
+          className="page-enter mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-accent/40 bg-accent/5 p-4"
         >
           <p className="text-sm">
-            Archived — hidden from your dashboard, and its share link is paused.
+            Complete
+            {project.completedAt
+              ? ` since ${toDateInput(project.completedAt)}`
+              : ""}{" "}
+            — it is in your archive, its share link is paused, and the dashboard
+            has moved on.
           </p>
-          <RestoreProjectButton projectId={project.id} />
+          <ReopenProjectButton projectId={project.id} />
         </section>
       )}
 
@@ -214,7 +228,7 @@ export default async function ProjectTimelinePage({
         )}
       </section>
 
-      {!project.archivedAt && (
+      {project.status === "IN_PROGRESS" && (
         <div className="mt-8">
           <ShareLinkPanel
             projectId={project.id}
@@ -327,10 +341,16 @@ export default async function ProjectTimelinePage({
                       isFirst={milestone.index === 0}
                       isLast={milestone.index === milestones.length - 1}
                     />
-                    <RescheduleMilestonePanel
+                    <EditMilestonePanel
                       milestoneId={milestone.id}
+                      name={milestone.name}
+                      goal={milestone.goal ?? ""}
                       plannedStart={toDateInput(milestone.plannedStart)}
                       plannedEnd={toDateInput(milestone.plannedEnd)}
+                    />
+                    <DeleteMilestoneButton
+                      milestoneId={milestone.id}
+                      milestoneName={milestone.name}
                     />
                   </div>
                 </div>
@@ -348,16 +368,17 @@ export default async function ProjectTimelinePage({
           Manage project
         </h2>
         <p className="mt-1 max-w-xl text-sm text-muted">
-          {project.archivedAt
-            ? "Restore this project to bring it back to your dashboard and re-enable its share link."
-            : "Archiving hides this project from your dashboard and pauses its share link. Nothing is deleted, and you can restore it at any time."}
+          {project.status === "COMPLETE"
+            ? "This project is complete and sits in your archive. Reopen it to work on it again, or delete it permanently."
+            : "Marking this project complete moves it to your archive and pauses its share link. You can reopen it at any time. Deleting is permanent."}
         </p>
-        <div className="mt-3">
-          {project.archivedAt ? (
-            <RestoreProjectButton projectId={project.id} />
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {project.status === "COMPLETE" ? (
+            <ReopenProjectButton projectId={project.id} />
           ) : (
-            <ArchiveProjectButton projectId={project.id} />
+            <CompleteProjectButton projectId={project.id} />
           )}
+          <DeleteProjectButton projectId={project.id} />
         </div>
       </section>
     </main>

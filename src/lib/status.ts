@@ -10,6 +10,11 @@ export const MILESTONE_STATUSES = [
 ] as const;
 export type MilestoneStatus = (typeof MILESTONE_STATUSES)[number];
 
+// A project is either still being worked on or finished. Finishing a project is
+// what moves it to the archive; there is no separate manual archive step.
+export const PROJECT_STATUSES = ["IN_PROGRESS", "COMPLETE"] as const;
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
 export const TASK_STATUSES = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
@@ -31,6 +36,16 @@ export const milestoneStatusTone: Record<MilestoneStatus, StatusTone> = {
   IN_PROGRESS: "amber",
   DONE: "emerald",
   SLIPPED: "red",
+};
+
+export const projectStatusLabel: Record<ProjectStatus, string> = {
+  IN_PROGRESS: "In progress",
+  COMPLETE: "Complete",
+};
+
+export const projectStatusTone: Record<ProjectStatus, StatusTone> = {
+  IN_PROGRESS: "accent",
+  COMPLETE: "emerald",
 };
 
 export const taskStatusLabel: Record<TaskStatus, string> = {

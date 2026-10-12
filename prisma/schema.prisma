@@ -73,6 +73,14 @@ enum ProjectRole {
   SUPERVISOR
 }
 
+// Whether a project is still being worked on. A project is either in progress
+// (shown on the dashboard) or complete (moved to the archive). Completing a
+// project is the only way it reaches the archive; nothing is archived by hand.
+enum ProjectStatus {
+  IN_PROGRESS
+  COMPLETE
+}
+
 // What a comment is attached to. targetId points at the row of that table.
 enum CommentTarget {
   MILESTONE
@@ -113,7 +121,9 @@ model Project {
   endDate        DateTime
   shareToken     String?         @unique
   shareExpiresAt DateTime?
-  archivedAt     DateTime?
+  // Shown on the dashboard while IN_PROGRESS; COMPLETE moves it to the archive.
+  status         ProjectStatus   @default(IN_PROGRESS)
+  completedAt    DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   members        ProjectMember[]

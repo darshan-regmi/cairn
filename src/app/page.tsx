@@ -57,7 +57,7 @@ export default async function Home() {
             Docs
           </Link>
           {signedIn ? (
-            <Link href="/projects" className={accentButton}>
+            <Link href="/dashboard" className={accentButton}>
               Go to dashboard
             </Link>
           ) : (
@@ -91,7 +91,7 @@ export default async function Home() {
         <div className="mt-8 flex flex-wrap gap-3">
           {signedIn ? (
             <>
-              <Link href="/projects" className={accentButton}>
+              <Link href="/dashboard" className={accentButton}>
                 Go to dashboard
               </Link>
               <Link href="/docs" className={outlineButton}>
@@ -146,7 +146,7 @@ export default async function Home() {
             Docs
           </Link>
           {signedIn ? (
-            <Link href="/projects" className={quietLink}>
+            <Link href="/dashboard" className={quietLink}>
               Dashboard
             </Link>
           ) : (

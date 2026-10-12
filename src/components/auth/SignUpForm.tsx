@@ -27,7 +27,7 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
       if (result?.error) {
         router.push("/login?registered=1");
       } else {
-        router.push(callbackUrl || "/projects");
+        router.push(callbackUrl || "/dashboard");
         router.refresh();
       }
     });

@@ -11,7 +11,7 @@ export default async function SignUpPage({
   searchParams: Promise<{ callbackUrl?: string }>;
 }) {
   const session = await auth();
-  if (session?.user) redirect("/projects");
+  if (session?.user) redirect("/dashboard");
 
   const { callbackUrl } = await searchParams;
   const callback = safeCallbackUrl(callbackUrl);

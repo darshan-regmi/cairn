@@ -27,7 +27,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
       return;
     }
 
-    router.push(callbackUrl || "/projects");
+    router.push(callbackUrl || "/dashboard");
     router.refresh();
   }
 

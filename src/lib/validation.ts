@@ -59,6 +59,12 @@ export const prioritySchema = z.enum(priorities);
 export const createProjectSchema = z
   .object({
     title: z.string().trim().min(1, "Give the project a title.").max(120),
+    goal: z
+      .string()
+      .trim()
+      .max(500)
+      .nullish()
+      .transform((value) => (value ? value : null)),
     startDate: dateInput,
     endDate: dateInput,
   })
@@ -67,11 +73,30 @@ export const createProjectSchema = z
     { message: "End date must be on or after the start date.", path: ["endDate"] },
   );
 
-// Archive and restore both act on a single project; the action re-checks that
-// the signed-in user owns it before changing anything.
+// Editing a project changes its title, goal and dates. Completing, reopening
+// and deleting all act on a single project; every action re-checks that the
+// signed-in user owns it before changing anything.
 export const projectIdSchema = z.object({
   projectId: z.string().min(1, "Missing project."),
 });
+
+export const updateProjectSchema = z
+  .object({
+    projectId: z.string().min(1, "Missing project."),
+    title: z.string().trim().min(1, "Give the project a title.").max(120),
+    goal: z
+      .string()
+      .trim()
+      .max(500)
+      .nullish()
+      .transform((value) => (value ? value : null)),
+    startDate: dateInput,
+    endDate: dateInput,
+  })
+  .refine(
+    (input) => input.endDate >= input.startDate,
+    { message: "End date must be on or after the start date.", path: ["endDate"] },
+  );
 
 export const createMilestoneSchema = z
   .object({
@@ -84,6 +109,30 @@ export const createMilestoneSchema = z
     (input) => input.plannedEnd >= input.plannedStart,
     { message: "End date must be on or after the start date.", path: ["plannedEnd"] },
   );
+
+// Editing a milestone covers its name, goal and planned dates (the scope and
+// definition of done are saved separately through saveMilestoneDetailsSchema).
+export const updateMilestoneSchema = z
+  .object({
+    milestoneId: z.string().min(1, "Missing milestone."),
+    name: z.string().trim().min(1, "Give the milestone a name.").max(120),
+    plannedStart: dateInput,
+    plannedEnd: dateInput,
+    goal: z
+      .string()
+      .trim()
+      .max(500)
+      .nullish()
+      .transform((value) => (value ? value : null)),
+  })
+  .refine(
+    (input) => input.plannedEnd >= input.plannedStart,
+    { message: "End date must be on or after the start date.", path: ["plannedEnd"] },
+  );
+
+export const deleteMilestoneSchema = z.object({
+  milestoneId: z.string().min(1, "Missing milestone."),
+});
 
 // A project plan parsed from a GanttProject-style CSV. Dates stay as
 // YYYY-MM-DD strings here; the action converts them when writing to the DB.
@@ -389,19 +438,6 @@ export const saveMilestoneDetailsSchema = z.object({
   scope: optionalNote,
   definitionOfDone: optionalNote,
 });
-
-// Changing a milestone's planned dates is the "reschedule" action on the
-// timeline. End must stay on or after start.
-export const rescheduleMilestoneSchema = z
-  .object({
-    milestoneId: z.string().min(1, "Missing milestone."),
-    plannedStart: dateInput,
-    plannedEnd: dateInput,
-  })
-  .refine((input) => input.plannedEnd >= input.plannedStart, {
-    message: "End date must be on or after the start date.",
-    path: ["plannedEnd"],
-  });
 
 // A deliverable link follows the same rule as evidence: blank stays null, and
 // anything else must be http(s) so it can never become a javascript: link.
