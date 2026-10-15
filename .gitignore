@@ -49,3 +49,7 @@ next-env.d.ts
 
 # Agent skill bundles (harness artifacts, not app assets)
 /*.zip
+
+# OpenCode local state
+.opencode/memory/
+.opencode/HANDOFF.md

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "build": { "tools": { "shadcn*": false } },
+    "ui": { "tools": { "shadcn*": false } }
+  },
+  "permission": {
+    "edit": {
+      "*": "allow",
+      ".env*": "deny",
+      ".github/**": "ask",
+      "prisma/schema.prisma": "ask",
+      "prisma/migrations/**": "ask"
+    },
+    "bash": {
+      "npm test*": "allow",
+      "npx vitest run*": "allow",
+      "npx prisma generate": "allow",
+      "npm run dev*": "ask",
+      "npm run db:*": "ask"
+    }
+  },
+  "command": {
+    "security": {
+      "description": "Security pass on staged changes or a path",
+      "agent": "security",
+      "subtask": true,
+      "template": "Audit $ARGUMENTS (default: `git diff --staged`). Skip items that do not apply. Check: (1) every server action in src/actions authorizes first (memberWhere for reads, ownerWhere for writes) and validates input with the Zod schemas in src/lib/validation.ts; (2) every Prisma query using a client-supplied id is scoped through ProjectMember; (3) share links and invite tokens are stored hashed, expiry is enforced, and read-only links expose no write path; (4) CSV import and evidence collection have size and type limits, handle parse errors, and avoid path traversal; (5) session cookies are httpOnly, secure and sameSite; (6) no secrets or Firebase admin keys in client code or logs. Run semgrep on the files. Output: severity, file:line, one-line fix. No praise."
+    },
+    "prod-check": {
+      "description": "Pre-PR checklist from AGENTS.md",
+      "agent": "plan",
+      "template": "Run the four checks from section 7 of AGENTS.md: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`. Then run `npm audit --omit=dev`. Then check the changed files for: console.log, commented-out code, missing error or loading states, a schema change without a migration, a user-facing change without a /docs update, secrets in `git diff`. Report pass or fail per item."
+    },
+    "ui-check": {
+      "description": "Check a page in the browser for layout, responsiveness, accessibility",
+      "agent": "ui",
+      "subtask": true,
+      "template": "Open $ARGUMENTS in the browser (the dev server must already be running on http://localhost:3000). If redirected to login, sign in with the seeded demo account from AGENTS.md section 2. If that fails, stop and say so. Check at 375px and 1280px, in light and dark mode, for overflow, broken layout, missing focus states, low contrast, missing labels and alt text. Report issues with file and fix. Do not redesign."
+    }
+  }
+}
