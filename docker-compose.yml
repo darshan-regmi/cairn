@@ -1,26 +1,25 @@
-# Project name is pinned so `docker compose` keeps tracking the running
-# container after the repo folder was renamed to `cairn`. The database name,
-# user and volume are intentionally left as-is to preserve existing data.
-name: fyp-planner
+# Compose project name. Pinned so the stack keeps a stable identity even if the
+# checkout folder is renamed.
+name: cairn
 
 services:
   db:
     image: postgres:16-alpine
-    container_name: fyp-planner-postgres
+    container_name: cairn-postgres
     ports:
       # Host 5433 because 5432 is often taken by other local projects.
       - "5433:5432"
     environment:
-      POSTGRES_USER: fyp
-      POSTGRES_PASSWORD: fyp
-      POSTGRES_DB: fyp_planner
+      POSTGRES_USER: cairn
+      POSTGRES_PASSWORD: cairn
+      POSTGRES_DB: cairn
     volumes:
-      - fyp-planner-data:/var/lib/postgresql/data
+      - cairn-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fyp -d fyp_planner"]
+      test: ["CMD-SHELL", "pg_isready -U cairn -d cairn"]
       interval: 5s
       timeout: 5s
       retries: 10
 
 volumes:
-  fyp-planner-data:
+  cairn-data:

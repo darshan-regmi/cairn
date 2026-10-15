@@ -12,18 +12,18 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: fyp
-          POSTGRES_PASSWORD: fyp
-          POSTGRES_DB: fyp_planner
+          POSTGRES_USER: cairn
+          POSTGRES_PASSWORD: cairn
+          POSTGRES_DB: cairn
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U fyp -d fyp_planner"
+          --health-cmd "pg_isready -U cairn -d cairn"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://fyp:fyp@localhost:5432/fyp_planner
+      DATABASE_URL: postgresql://cairn:cairn@localhost:5432/cairn
       AUTH_SECRET: ci-only-secret-not-used-by-tests
     steps:
       - uses: actions/checkout@v4
