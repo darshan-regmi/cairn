@@ -1,22 +1,24 @@
 "use server";
 
 import { Prisma } from "@/generated/prisma/client";
-import { hashPassword } from "@/lib/password";
 import { prisma } from "@/lib/prisma";
 import { isSignupAllowed } from "@/lib/config";
+import { adminAuth } from "@/lib/firebase/admin";
 import { signUpSchema } from "@/lib/validation";
 
-export type SignUpState = {
+export type RegisterAccountResult = {
   success: boolean;
   error?: string;
 };
 
-// Server action = the only path for creating an account. All input re-validated
-// with Zod here; nothing from the client is trusted as-is.
-export async function signUp(
-  _prev: SignUpState,
-  formData: FormData,
-): Promise<SignUpState> {
+// The browser creates the Firebase account (so Firebase can send the
+// verification email); this records the app-side row. The ID token is verified
+// here, so the email and uid cannot be spoofed by the client.
+export async function registerAccount(input: {
+  idToken: string;
+  name?: string | null;
+  role?: string | null;
+}): Promise<RegisterAccountResult> {
   if (!isSignupAllowed()) {
     return {
       success: false,
@@ -24,13 +26,7 @@ export async function signUp(
     };
   }
 
-  const parsed = signUpSchema.safeParse({
-    name: formData.get("name"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-    role: formData.get("role"),
-  });
-
+  const parsed = signUpSchema.safeParse({ name: input.name, role: input.role });
   if (!parsed.success) {
     return {
       success: false,
@@ -38,17 +34,28 @@ export async function signUp(
     };
   }
 
-  const name =
-    parsed.data.name && parsed.data.name.length > 0
-      ? parsed.data.name
-      : undefined;
+  let decoded: Awaited<ReturnType<ReturnType<typeof adminAuth>["verifyIdToken"]>>;
+  try {
+    decoded = await adminAuth().verifyIdToken(input.idToken);
+  } catch {
+    return { success: false, error: "Could not verify your account. Try again." };
+  }
 
-  const email = parsed.data.email;
-  const passwordHash = await hashPassword(parsed.data.password);
+  if (!decoded.email) {
+    return { success: false, error: "Your account has no email address." };
+  }
+
+  const name =
+    parsed.data.name && parsed.data.name.length > 0 ? parsed.data.name : undefined;
 
   try {
     await prisma.user.create({
-      data: { email, name, passwordHash, role: parsed.data.role },
+      data: {
+        email: decoded.email.toLowerCase(),
+        name,
+        role: parsed.data.role,
+        firebaseUid: decoded.uid,
+      },
     });
     return { success: true };
   } catch (error) {

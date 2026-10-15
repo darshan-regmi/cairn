@@ -248,9 +248,10 @@ export default async function DocsPage() {
 
       <Section id="account" title="Account and sign-in">
         <p>
-          Forgot your password? Start a reset from the log-in page. With no mail
-          server configured, the reset link is shown for you to copy and open.
-          It works once and expires after an hour.
+          Accounts are handled by Firebase Authentication. Signing up sends a
+          verification email, and you cannot log in until you open it. Forgot
+          your password? Start a reset from the log-in page and Firebase emails
+          you a link.
         </p>
       </Section>
 
@@ -262,8 +263,12 @@ export default async function DocsPage() {
             PostgreSQL connection string.
           </li>
           <li>
-            <code className="font-mono text-fg">AUTH_SECRET</code> — the session
-            signing secret.
+            <code className="font-mono text-fg">NEXT_PUBLIC_FIREBASE_*</code> —
+            the web config for your Firebase project.
+          </li>
+          <li>
+            <code className="font-mono text-fg">FIREBASE_SERVICE_ACCOUNT</code>{" "}
+            — the Admin SDK key (a file path or the JSON itself).
           </li>
           <li>
             <code className="font-mono text-fg">ALLOW_SIGNUP</code> — set to{" "}

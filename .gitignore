@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local service-account credentials (never commit)
+/.secrets/
+
 # generated prisma client (regenerate with `npx prisma generate`)
 /src/generated
 

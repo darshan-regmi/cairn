@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/lib/auth";
+import { auth, clearSession } from "@/lib/auth";
 import { listOwnedProjectsForUser } from "@/lib/data";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -23,7 +23,8 @@ export default async function AppLayout({
       }))}
       signOut={async () => {
         "use server";
-        await signOut({ redirectTo: "/login" });
+        await clearSession();
+        redirect("/login");
       }}
     >
       {children}

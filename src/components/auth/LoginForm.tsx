@@ -1,8 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import {
+  signInWithEmailAndPassword,
+  sendEmailVerification,
+  signOut as firebaseSignOut,
+} from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { authErrorMessage, getFirebaseAuth } from "@/lib/firebase/client";
 
 export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const router = useRouter();
@@ -14,21 +19,48 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
     setError(null);
     setPending(true);
 
-    const form = event.currentTarget;
-    const result = await signIn("credentials", {
-      redirect: false,
-      email: form.email.value,
-      password: form.password.value,
-    });
-    setPending(false);
+    const data = new FormData(event.currentTarget);
+    const email = String(data.get("email") ?? "");
+    const password = String(data.get("password") ?? "");
+    const firebaseAuth = getFirebaseAuth();
 
-    if (result?.error) {
-      setError("Email or password is incorrect.");
-      return;
+    try {
+      const { user } = await signInWithEmailAndPassword(
+        firebaseAuth,
+        email,
+        password,
+      );
+      await user.reload();
+
+      if (!user.emailVerified) {
+        // Nudge them with a fresh link, then refuse the session.
+        await sendEmailVerification(user).catch(() => {});
+        await firebaseSignOut(firebaseAuth);
+        setError(`Verify your email first — we sent a fresh link to ${email}.`);
+        return;
+      }
+
+      // Swap the short-lived ID token for an httpOnly session cookie.
+      const idToken = await user.getIdToken();
+      const response = await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!response.ok) {
+        await firebaseSignOut(firebaseAuth);
+        setError("Could not start your session. Try again.");
+        return;
+      }
+
+      router.push(callbackUrl || "/dashboard");
+      router.refresh();
+    } catch (cause) {
+      setError(authErrorMessage(cause, "Email or password is incorrect."));
+    } finally {
+      setPending(false);
     }
-
-    router.push(callbackUrl || "/dashboard");
-    router.refresh();
   }
 
   return (

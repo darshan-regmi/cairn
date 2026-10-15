@@ -24,7 +24,6 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://cairn:cairn@localhost:5432/cairn
-      AUTH_SECRET: ci-only-secret-not-used-by-tests
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,5 +41,3 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
-        env:
-          AUTH_SECRET: ci-only-secret-not-used-by-tests

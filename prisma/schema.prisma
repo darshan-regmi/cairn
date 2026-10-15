@@ -96,23 +96,20 @@ enum CommentTarget {
 // ---------- Models ----------
 
 model User {
-  id                  String               @id @default(cuid())
-  email               String               @unique
-  passwordHash        String
-  name                String?
-  role                UserRole             @default(NORMAL)
-  avatarUrl           String?
-  timeZone            String?
-  emailVerifiedAt     DateTime?
-  failedLoginCount    Int                  @default(0)
-  lockedUntil         DateTime?
+  id             String          @id @default(cuid())
+  email          String          @unique
+  // Firebase Auth owns the credential; this links to that account.
+  firebaseUid    String?         @unique
+  name           String?
+  role           UserRole        @default(NORMAL)
+  avatarUrl      String?
+  timeZone       String?
   // Set when the owner marks supervisor comments as read on the dashboard.
-  commentsReadAt      DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  memberships         ProjectMember[]
-  comments            Comment[]
-  passwordResetTokens PasswordResetToken[]
+  commentsReadAt DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  memberships    ProjectMember[]
+  comments       Comment[]
 }
 
 model Project {
@@ -335,18 +332,4 @@ model Invite {
 
   @@index([projectId])
   @@index([email])
-}
-
-// A single-use password reset link. Like invites, the raw token travels in the
-// link only; the database keeps a SHA-256 hash so a leak cannot be replayed.
-model PasswordResetToken {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-
-  @@index([userId])
 }

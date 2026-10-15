@@ -12,7 +12,7 @@ export default async function ResetRequestPage() {
       <div className="space-y-1">
         <h1 className="text-2xl tracking-tight">Reset your password</h1>
         <p className="text-sm text-muted">
-          Enter your email and we&rsquo;ll create a reset link.
+          Enter your email and we&rsquo;ll send a reset link.
         </p>
       </div>
 

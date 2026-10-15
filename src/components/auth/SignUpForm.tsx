@@ -1,52 +1,91 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useActionState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { signUp, type SignUpState } from "@/actions/auth";
+import { useState } from "react";
+import Link from "next/link";
+import {
+  createUserWithEmailAndPassword,
+  deleteUser,
+  sendEmailVerification,
+  signOut as firebaseSignOut,
+  updateProfile,
+} from "firebase/auth";
+import { registerAccount } from "@/actions/auth";
+import { authErrorMessage, getFirebaseAuth } from "@/lib/firebase/client";
 import { USER_ROLES, userRoleBlurb, userRoleLabel } from "@/lib/roles";
 
-const initialState: SignUpState = { success: false };
-
 export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
-  const router = useRouter();
-  const [state, formAction, pending] = useActionState(signUp, initialState);
-  // A completed action resets the uncontrolled fields, so remember what was
-  // submitted; the sign-in below runs after that reset.
-  const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
-  // After the account is created, sign the user straight in so they land on
-  // the app without a second login round trip.
-  useEffect(() => {
-    if (!state.success) return;
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
 
-    void signIn("credentials", {
-      redirect: false,
-      email: credentials.email,
-      password: credentials.password,
-    }).then((result) => {
-      if (result?.error) {
-        router.push("/login?registered=1");
-      } else {
-        router.push(callbackUrl || "/dashboard");
-        router.refresh();
+    const data = new FormData(event.currentTarget);
+    const name = String(data.get("name") ?? "").trim();
+    const email = String(data.get("email") ?? "");
+    const password = String(data.get("password") ?? "");
+    const role = String(data.get("role") ?? "NORMAL");
+    const firebaseAuth = getFirebaseAuth();
+
+    try {
+      // Firebase owns the credential so it can send the verification email.
+      const { user } = await createUserWithEmailAndPassword(
+        firebaseAuth,
+        email,
+        password,
+      );
+
+      try {
+        if (name) await updateProfile(user, { displayName: name });
+        await sendEmailVerification(user);
+        const idToken = await user.getIdToken();
+        const result = await registerAccount({ idToken, name, role });
+        if (!result.success) {
+          await deleteUser(user).catch(() => {});
+          setError(result.error ?? "Could not create your account.");
+          return;
+        }
+      } catch (cause) {
+        // Roll back the Firebase account so the address stays usable.
+        await deleteUser(user).catch(() => {});
+        throw cause;
       }
-    });
-  }, [state.success, router, callbackUrl, credentials]);
+
+      await firebaseSignOut(firebaseAuth);
+      setSentTo(email);
+    } catch (cause) {
+      setError(authErrorMessage(cause, "Could not create your account."));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (sentTo) {
+    return (
+      <div className="space-y-4">
+        <p className="rounded-md border border-edge bg-accent/10 px-3 py-2 text-sm text-accent">
+          Almost there. We sent a verification link to {sentTo}. Open it, then
+          log in.
+        </p>
+        <Link
+          href={
+            callbackUrl
+              ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+              : "/login"
+          }
+          className="block w-full rounded-md bg-accent px-3 py-2 text-center text-sm font-medium text-accent-ink transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
+        >
+          Go to log in
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <form
-      action={formAction}
-      onSubmit={(event) => {
-        const data = new FormData(event.currentTarget);
-        setCredentials({
-          email: String(data.get("email") ?? ""),
-          password: String(data.get("password") ?? ""),
-        });
-      }}
-      className="space-y-4"
-    >
+    <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-1">
         <label htmlFor="name" className="block text-sm font-medium">
           Name <span className="text-muted">(optional)</span>
@@ -122,8 +161,8 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
         </p>
       </fieldset>
 
-      {state.error && (
-        <p className="text-sm text-red-700 dark:text-red-400">{state.error}</p>
+      {error && (
+        <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
       )}
 
       <button

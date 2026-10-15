@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore, useState } from "react";
+import { signOut as firebaseSignOut } from "firebase/auth";
 import { Dialog } from "@/components/ui/Dialog";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
+import { getFirebaseAuth } from "@/lib/firebase/client";
 import { canOwnProjects, type UserRole } from "@/lib/roles";
 import {
   ChevronIcon,
@@ -233,7 +235,14 @@ export function AppShell({
               </span>
             </button>
 
-            <form action={signOut}>
+            {/* Drop the browser's Firebase session before the server action
+                clears the cookie, so it cannot be re-minted. */}
+            <form
+              action={signOut}
+              onSubmit={() => {
+                void firebaseSignOut(getFirebaseAuth()).catch(() => {});
+              }}
+            >
               <button
                 type="submit"
                 title="Sign out"

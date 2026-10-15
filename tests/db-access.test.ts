@@ -45,14 +45,12 @@ describeDb("DB-backed authorization", () => {
     const owner = await prisma.user.create({
       data: {
         email: `owner_${tag}@cairn.test`,
-        passwordHash: "scrypt:0:test-only",
         name: "Owner",
       },
     });
     const supervisor = await prisma.user.create({
       data: {
         email: `supervisor_${tag}@cairn.test`,
-        passwordHash: "scrypt:0:test-only",
         name: "Supervisor",
         role: "SUPERVISOR",
       },
@@ -60,7 +58,6 @@ describeDb("DB-backed authorization", () => {
     const intruder = await prisma.user.create({
       data: {
         email: `intruder_${tag}@cairn.test`,
-        passwordHash: "scrypt:0:test-only",
         name: "Intruder",
       },
     });

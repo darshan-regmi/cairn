@@ -1,77 +1,56 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import {
-  requestPasswordResetAction,
-  type RequestResetState,
-} from "@/actions/reset";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { authErrorMessage, getFirebaseAuth } from "@/lib/firebase/client";
 
 const inputClass =
   "w-full rounded-md border border-edge bg-transparent px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30";
 
 /**
- * Starts a password reset. No SMTP is configured in this build, so once the
- * server logs the link it is also handed back here to copy and open.
+ * Starts a password reset. Firebase sends the email; the response is always the
+ * same so it never reveals whether an address has an account.
  */
 export function RequestResetForm() {
   const [sent, setSent] = useState(false);
-  const [resetUrl, setResetUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    startTransition(async () => {
-      const result = await requestPasswordResetAction(
-        { success: false } satisfies RequestResetState,
-        formData,
-      );
-      if (result.success) {
+    setError(null);
+    setPending(true);
+
+    const data = new FormData(event.currentTarget);
+    const email = String(data.get("email") ?? "");
+
+    try {
+      await sendPasswordResetEmail(getFirebaseAuth(), email);
+      setSent(true);
+    } catch (cause) {
+      // An unknown address is reported exactly like a known one.
+      if (
+        cause instanceof Error &&
+        "code" in cause &&
+        cause.code === "auth/user-not-found"
+      ) {
         setSent(true);
-        setError(null);
-        setResetUrl(
-          result.resetUrl ? `${window.location.origin}${result.resetUrl}` : null,
-        );
       } else {
-        setError(result.error ?? "Could not start the reset.");
+        setError(authErrorMessage(cause, "Could not send the reset email."));
       }
-    });
+    } finally {
+      setPending(false);
+    }
   }
 
   if (sent) {
     return (
-      <div className="space-y-3">
-        <p className="rounded-md border border-edge bg-accent/10 px-3 py-2 text-sm">
-          If an account exists for that address, a reset link has been created.
+      <div className="space-y-4">
+        <p className="rounded-md border border-edge bg-accent/10 px-3 py-2 text-sm text-accent">
+          If that address has an account, a reset link is on its way. Check your
+          inbox and spam folder.
         </p>
-        {resetUrl && (
-          <div className="space-y-2">
-            <p className="text-xs text-muted">
-              Email isn&rsquo;t set up here, so copy this link and open it in
-              this browser. It works once and expires in an hour.
-            </p>
-            <div className="flex gap-2">
-              <input
-                readOnly
-                value={resetUrl}
-                onFocus={(event) => event.currentTarget.select()}
-                aria-label="Password reset link"
-                className={inputClass}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  void navigator.clipboard.writeText(resetUrl);
-                }}
-                className="shrink-0 rounded-md border border-edge px-3 py-2 text-sm font-medium transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                Copy
-              </button>
-            </div>
-          </div>
-        )}
         <Link
           href="/login"
           className="block w-full rounded-md border border-edge px-3 py-2 text-center text-sm font-medium transition-colors hover:bg-accent/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -83,13 +62,13 @@ export function RequestResetForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1">
-        <label htmlFor="reset-email" className="block text-sm font-medium">
+        <label htmlFor="email" className="block text-sm font-medium">
           Email
         </label>
         <input
-          id="reset-email"
+          id="email"
           name="email"
           type="email"
           autoComplete="email"
@@ -98,16 +77,14 @@ export function RequestResetForm() {
         />
       </div>
 
-      {error && (
-        <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-700 dark:text-red-400">{error}</p>}
 
       <button
         type="submit"
         disabled={pending}
         className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-ink transition-opacity disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
       >
-        {pending ? "Creating link…" : "Create reset link"}
+        {pending ? "Sending…" : "Send reset link"}
       </button>
     </form>
   );

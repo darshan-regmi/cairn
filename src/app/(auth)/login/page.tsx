@@ -8,12 +8,12 @@ import { LoginForm } from "@/components/auth/LoginForm";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ registered?: string; reset?: string; callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string }>;
 }) {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
 
-  const { registered, reset, callbackUrl } = await searchParams;
+  const { callbackUrl } = await searchParams;
   const callback = safeCallbackUrl(callbackUrl);
   const signupAllowed = isSignupAllowed();
 
@@ -25,18 +25,6 @@ export default async function LoginPage({
           Continue planning your project.
         </p>
       </div>
-
-      {registered && (
-        <p className="rounded-md border border-edge bg-accent/10 px-3 py-2 text-sm text-accent">
-          Account created. You can log in now.
-        </p>
-      )}
-
-      {reset && (
-        <p className="rounded-md border border-edge bg-accent/10 px-3 py-2 text-sm text-accent">
-          Password updated. Log in with your new password.
-        </p>
-      )}
 
       <LoginForm callbackUrl={callback} />
 

@@ -4,11 +4,6 @@ import { USER_ROLES } from "@/lib/roles";
 export const signUpSchema = z.object({
   // nullish: FormData.get() returns null when a field is absent.
   name: z.string().trim().max(80).nullish(),
-  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters.")
-    .max(200),
   // The role a person is in general; per-project rights live on ProjectMember.
   role: z
     .enum(USER_ROLES)
@@ -16,33 +11,7 @@ export const signUpSchema = z.object({
     .transform((value) => value ?? "NORMAL"),
 });
 
-export const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
-  password: z.string().min(1, "Enter your password."),
-});
-
 export type SignUpInput = z.infer<typeof signUpSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;
-
-// ---------- Password reset ----------
-
-export const requestResetSchema = z.object({
-  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
-});
-
-export const completeResetSchema = z
-  .object({
-    token: z.string().trim().min(20, "This reset link is invalid.").max(200),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters.")
-      .max(200),
-    confirm: z.string(),
-  })
-  .refine((value) => value.password === value.confirm, {
-    message: "Passwords do not match.",
-    path: ["confirm"],
-  });
 
 // ---------- Phase 1: planning core ----------
 

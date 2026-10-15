@@ -13,8 +13,8 @@ planning history becomes material you can write up later.
 - **Next.js 16** (App Router, React 19, TypeScript strict, Turbopack)
 - **Tailwind CSS v4** with a small set of design tokens and dark mode support
 - **Prisma 7** with PostgreSQL (driver adapter `@prisma/adapter-pg`)
-- **Auth.js v5** (NextAuth beta) — email/password via the Credentials provider,
-  JWT sessions
+- **Firebase Authentication** — email/password sign-in that requires a verified
+  address; the server swaps the ID token for an httpOnly session cookie
 - **Zod** — every server action re-validates its input
 - **Vitest** + **ESLint** + a **GitHub Actions** CI workflow
 - **docker compose** for local PostgreSQL
@@ -33,12 +33,13 @@ docker compose up -d
 
 # 2. Create environment variables
 cp .env.example .env
-# then set AUTH_SECRET:  openssl rand -base64 32
+# then fill in the Firebase web keys and point FIREBASE_SERVICE_ACCOUNT at a
+# service-account JSON file (see .env.example)
 
 # 3. Install dependencies (generates the Prisma client automatically)
 npm install
 
-# 4. Apply migrations and seed a login account
+# 4. Apply migrations and seed a login account (provisioned in Firebase too)
 npm run db:migrate   # first run: applies the init migration
 npm run db:seed
 
@@ -46,35 +47,35 @@ npm run db:seed
 npm run dev
 ```
 
-Open http://localhost:3000. Sign in with the demo account:
+Open [http://localhost:3000]. Sign in with the demo account:
 
-```
+```text
 email:    demo@example.com
 password: demo1234
 ```
 
-The seed only creates the login account above — it adds no projects, so a
-fresh database starts empty. Create your first project from the dashboard, or
-import one from a CSV.
+The seed creates that account in Firebase as well (already verified) and no
+projects, so a fresh database starts empty. Create your first project from the
+dashboard, or import one from a CSV.
 
 ## Useful commands
 
-| Command            | What it does                                  |
-| ------------------ | --------------------------------------------- |
-| `npm run dev`      | Start the dev server                          |
-| `npm run typecheck`| `tsc --noEmit`                                |
-| `npm run lint`     | ESLint flat config                            |
-| `npm test`         | Vitest. Pure unit tests always run; the DB-backed authorization tests run when `DATABASE_URL` is set (local docker compose or CI) |
-| `npm run build`    | Production build                              |
-| `npm run db:up` / `db:down` | Start / stop the Postgres container   |
-| `npm run db:migrate` | Create and apply a migration (`prisma migrate dev`) |
-| `npm run db:deploy` | Apply existing migrations without creating   |
-| `npm run db:seed`  | Seed a login account (no projects)            |
-| `npm run db:reset` | Drop, migrate, and seed from scratch          |
+| Command                     | What it does                                                                                                                      |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`               | Start the dev server                                                                                                              |
+| `npm run typecheck`         | `tsc --noEmit`                                                                                                                    |
+| `npm run lint`              | ESLint flat config                                                                                                                |
+| `npm test`                  | Vitest. Pure unit tests always run; the DB-backed authorization tests run when `DATABASE_URL` is set (local docker compose or CI) |
+| `npm run build`             | Production build                                                                                                                  |
+| `npm run db:up` / `db:down` | Start / stop the Postgres container                                                                                               |
+| `npm run db:migrate`        | Create and apply a migration (`prisma migrate dev`)                                                                               |
+| `npm run db:deploy`         | Apply existing migrations without creating                                                                                        |
+| `npm run db:seed`           | Seed a login account (no projects)                                                                                                |
+| `npm run db:reset`          | Drop, migrate, and seed from scratch                                                                                              |
 
 ## Project layout
 
-```
+```text
 src/
   app/                  # App Router pages
     page.tsx            # public landing page
@@ -91,17 +92,15 @@ src/
       supervisor/[projectId]/          # read-only review view + comments
     (auth)/login        # sign-in page (forgot-password link lives here)
     (auth)/signup       # create-account page (student / supervisor choice)
-    (auth)/reset        # request a password reset link
-    (auth)/reset/[token]  # set a new password from a reset link
+    (auth)/reset        # request a password reset email
     (auth)/invite/[token]  # accept a supervisor invitation (public)
     share/[token]       # public, read-only project view (share link)
     error.tsx           # 500 boundary with a request id
     global-error.tsx    # root-level 500 boundary
     not-found.tsx       # 404 page with a way back
-    api/auth/[...nextauth]  # Auth.js route handler
+    api/auth/session    # swaps a Firebase ID token for the session cookie
   actions/
-    auth.ts             # server action: sign-up (role choice, ALLOW_SIGNUP gate)
-    reset.ts            # request + complete a password reset
+    auth.ts             # server action: registerAccount (Firebase token → user row)
     projects.ts         # createProject, importProject, milestone CRUD + move/details, project edit/complete/reopen/delete
     deliverables.ts     # add/toggle/update/delete milestone deliverables
     dashboard.ts        # markCommentsRead (supervisor-comment watermark)
@@ -114,7 +113,7 @@ src/
     share.ts            # saveShareLink (create / set expiry), revokeShareLink
     evidence.ts         # createEvidence, updateEvidence, deleteEvidence (owner only)
   components/
-    auth/               # sign-in / sign-up / password-reset client forms
+    auth/               # sign-in / sign-up / reset-email client forms
     projects/           # create/edit-project + CSV import forms + complete/reopen/delete controls
     timeline/           # add-milestone form, status control, move/edit/delete controls
     kanban/             # KanbanBoard (dnd-kit), TaskDialog
@@ -138,7 +137,6 @@ src/
     prisma.ts           # Prisma client singleton
     validation.ts       # Zod schemas
     invites.ts          # pure invite token / hashing / expiry helpers
-    reset.ts            # pure password-reset token / hashing / expiry helpers
     share.ts            # pure share token generator / active-window check
     navigation.ts       # safe same-site callbackUrl helper
     meetings.ts         # pure agreed-action textarea parser
@@ -146,12 +144,12 @@ src/
                         #   meeting prep / open questions / unread comments)
     supervisor.ts       # pure supervised-project summary (on-track / behind + next meeting)
     csv-import.ts       # pure GanttProject CSV → project plan parser
-    password.ts         # scrypt hashing (node:crypto, no native deps)
+    firebase/client.ts  # browser SDK + auth error copy
+    firebase/admin.ts   # Admin SDK: session cookies + account lookups
     data.ts             # membership-scoped read queries
     comments.ts         # comment row → CommentItem mapping / per-target grouping
     milestone-metrics.ts# pure progress / overdue / days-left helpers
     status.ts           # shared status labels and colours
-  types/next-auth.d.ts  # session user.id typing
 prisma/
   schema.prisma         # full data model
   seed.ts               # demo data
@@ -163,7 +161,7 @@ tests/                  # Vitest unit tests + DB-backed authorization tests
 ## Conventions
 
 - **All mutations are server actions.** One pattern, used everywhere.
-  NextAuth's route handler is the only exception (it must be a route).
+  The Firebase session route handler is the only exception (it must be a route).
 - **Every server action re-validates with Zod.**
 - **Every query is scoped through `ProjectMember`.** Reads use `memberWhere`
   (owner or supervisor); every write action uses `ownerWhere` (owner only).
@@ -264,9 +262,9 @@ Importing the same title + dates twice for the same user is refused.
   that shows the request id, and a distinct no-access page when you open a
   project you do not belong to.
 - **Self-service accounts (done):** sign-up asks whether you are a student or a
-  supervisor and can be closed with `ALLOW_SIGNUP=false`; the login page links
-  to password reset. Reset links are single-use, hashed at rest, expire after an
-  hour, and need no mail server (the link is shown to copy).
+  supervisor and can be closed with `ALLOW_SIGNUP=false`. Accounts live in
+  Firebase: a verification email must be opened before the first sign-in, and the
+  login page links to a password reset that Firebase sends for you.
 - **Landing and docs (done):** a public landing page at `/` and a `/docs` guide
   covering the whole workflow and self-hosting configuration.
 - **Still to build:** report helper, all-tasks view, settings, notifications, and
