@@ -51,7 +51,7 @@ export default async function Home() {
   return (
     <main id="main-content" className="mx-auto w-full max-w-5xl px-4">
       <header className="flex flex-wrap items-center justify-between gap-4 py-6">
-        <span className="font-display text-lg tracking-tight">Cairn</span>
+        <img src="/cairn-logo.svg" alt="Cairn" className="h-7 w-auto" />
         <nav aria-label="Primary" className="flex items-center gap-5 text-sm">
           <Link href="/docs" className={quietLink}>
             Docs

@@ -151,12 +151,7 @@ export function AppShell({
               className="flex items-center gap-2.5 rounded-md px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               aria-label="Cairn dashboard"
             >
-              <span
-                aria-hidden="true"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent font-display text-sm text-accent-ink"
-              >
-                F
-              </span>
+              <img src="/cairn-icon.svg" alt="" className="h-8 w-8 shrink-0" />
               <span
                 className={`font-display text-base tracking-tight text-fg ${labelClass(collapsed)}`}
               >
