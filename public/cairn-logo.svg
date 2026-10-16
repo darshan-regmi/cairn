@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 110 1170 400" role="img" aria-label="Cairn">
+  <title>Cairn</title>
+  <path d="M108 424C98 380 150 348 256 344C372 342 414 380 404 420C397 446 330 456 256 456C170 456 114 450 108 424Z" fill="#46598a"/>
+  <path d="M150 396C190 380 270 376 360 392" stroke="#fff" stroke-opacity=".1" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <path d="M158 350C146 312 190 278 264 276C340 274 376 306 368 342C362 362 310 370 262 370C204 370 162 366 158 350Z" fill="#6580b8"/>
+  <path d="M190 330C222 312 286 306 340 318" stroke="#fff" stroke-opacity=".14" stroke-width="9" stroke-linecap="round" fill="none"/>
+  <path d="M188 284C183 254 212 226 252 224C294 222 326 250 320 280C316 295 284 301 252 301C220 301 191 297 188 284Z" fill="#8aa2d6"/>
+  <path d="M214 262C234 250 268 246 296 254" stroke="#fff" stroke-opacity=".16" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <path d="M224 230C221 205 237 178 262 176C288 176 301 202 296 226C292 240 271 245 258 245C241 245 226 241 224 230Z" fill="#f2b441"/>
+  <path d="M240 208C248 198 262 194 274 198" stroke="#fff" stroke-opacity=".3" stroke-width="7" stroke-linecap="round" fill="none"/>
+  <text x="450" y="432" font-family="'Instrument Sans','Inter','Helvetica Neue',Arial,sans-serif" font-size="220" font-weight="600" letter-spacing="-5" fill="currentColor">cairn</text>
+</svg>
