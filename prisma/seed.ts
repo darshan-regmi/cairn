@@ -1,20 +1,25 @@
 import "dotenv/config";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { adminAuth } from "../src/lib/firebase/admin";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { deploymentMode } from "../src/lib/deployment";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL ?? "",
 });
 const prisma = new PrismaClient({ adapter });
 
-/**
- * The seed only guarantees a login account. It creates no projects, so a fresh
- * database starts empty and you add your own work from the dashboard. Both the
- * Firebase user and the app row are upserted, so re-running the seed never
- * touches your existing data.
- */
 async function main() {
+  // Self-host has no Firebase account to attach to. The first person to open
+  // the app creates the account at /setup, so there is nothing to seed.
+  if (deploymentMode() === "selfhost") {
+    console.log(
+      "Self-host mode: no demo account is seeded. Open /setup to create the first account.",
+    );
+    return;
+  }
+
+  const { adminAuth } = await import("../src/lib/firebase/admin");
+
   const email = "demo@example.com";
   const password = "demo1234";
 

@@ -13,6 +13,30 @@ export const signUpSchema = z.object({
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
 
+// ---------- Self-host credentials ----------
+//
+// Cloud mode never reaches these: Firebase owns the credential there. They back
+// the self-host adapter (src/lib/auth-selfhost.ts) and the forms it serves.
+
+const passwordField = z
+  .string()
+  .min(8, "Use at least 8 characters.")
+  .max(200, "That password is too long.");
+
+export const emailPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  password: passwordField,
+});
+
+export const firstAdminSchema = emailPasswordSchema.extend({
+  name: signUpSchema.shape.name,
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Missing reset link."),
+  password: passwordField,
+});
+
 // ---------- Phase 1: planning core ----------
 
 const dateInput = z

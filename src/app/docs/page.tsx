@@ -253,22 +253,56 @@ export default async function DocsPage() {
           your password? Start a reset from the log-in page and Firebase emails
           you a link.
         </p>
+        <p>
+          A self-hosted install can run without Firebase instead. In that mode
+          accounts are stored in its own database: the first visitor creates the
+          first account at the setup page, and if email is configured a
+          verification link must be opened before the first log-in.
+        </p>
       </Section>
 
       <Section id="self-hosting" title="Self-hosting">
+        <p>
+          <code className="font-mono text-fg">DEPLOYMENT_MODE</code> chooses where
+          accounts live. Leave it as{" "}
+          <code className="font-mono text-fg">cloud</code> (the default) to use
+          Firebase, or set it to{" "}
+          <code className="font-mono text-fg">selfhost</code> to keep accounts in
+          your own PostgreSQL database and never contact Firebase.
+        </p>
         <p>Cairn is configured entirely through environment variables:</p>
         <ul className="list-disc space-y-1 pl-5">
+          <li>
+            <code className="font-mono text-fg">DEPLOYMENT_MODE</code> —{" "}
+            <code className="font-mono text-fg">cloud</code> or{" "}
+            <code className="font-mono text-fg">selfhost</code>.
+          </li>
           <li>
             <code className="font-mono text-fg">DATABASE_URL</code> — the
             PostgreSQL connection string.
           </li>
           <li>
+            <code className="font-mono text-fg">SESSION_SECRET</code> — required
+            in self-host mode. At least 32 characters; it signs the session
+            cookies and the verification and reset links.
+          </li>
+          <li>
+            <code className="font-mono text-fg">APP_URL</code> — the public
+            address of your install, used to build verification and reset links.
+          </li>
+          <li>
             <code className="font-mono text-fg">NEXT_PUBLIC_FIREBASE_*</code> —
-            the web config for your Firebase project.
+            the web config for your Firebase project (cloud mode only).
           </li>
           <li>
             <code className="font-mono text-fg">FIREBASE_SERVICE_ACCOUNT</code>{" "}
-            — the Admin SDK key (a file path or the JSON itself).
+            — the Admin SDK key, a file path or the JSON itself (cloud mode
+            only).
+          </li>
+          <li>
+            <code className="font-mono text-fg">SMTP_*</code> — optional mail
+            server for verification and reset links. Without it those links are
+            written to the logs instead.
           </li>
           <li>
             <code className="font-mono text-fg">ALLOW_SIGNUP</code> — set to{" "}
@@ -279,7 +313,8 @@ export default async function DocsPage() {
         <p>
           Apply the database schema with{" "}
           <code className="font-mono text-fg">npx prisma migrate deploy</code>{" "}
-          before starting the app.
+          before starting the app. The published Docker image does this for you
+          on startup.
         </p>
       </Section>
 

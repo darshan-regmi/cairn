@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { deploymentMode } from "@/lib/deployment";
 import { RequestResetForm } from "@/components/auth/RequestResetForm";
 
 export default async function ResetRequestPage() {
@@ -16,7 +17,7 @@ export default async function ResetRequestPage() {
         </p>
       </div>
 
-      <RequestResetForm />
+      <RequestResetForm mode={deploymentMode()} />
 
       <p className="text-center text-sm text-muted">
         Remembered it?{" "}

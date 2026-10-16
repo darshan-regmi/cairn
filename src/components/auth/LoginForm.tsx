@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import {
-  signInWithEmailAndPassword,
-  sendEmailVerification,
-  signOut as firebaseSignOut,
-} from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { authErrorMessage, getFirebaseAuth } from "@/lib/firebase/client";
+import { signInWithPassword } from "@/actions/auth";
 
-export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
+export function LoginForm({
+  callbackUrl,
+  mode,
+}: {
+  callbackUrl?: string;
+  mode: "cloud" | "selfhost";
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -22,42 +23,64 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email") ?? "");
     const password = String(data.get("password") ?? "");
-    const firebaseAuth = getFirebaseAuth();
 
     try {
-      const { user } = await signInWithEmailAndPassword(
-        firebaseAuth,
-        email,
-        password,
+      if (mode === "selfhost") {
+        const result = await signInWithPassword({ email, password });
+        if (!result.success) {
+          setError(result.error ?? "Email or password is incorrect.");
+          return;
+        }
+        router.push(callbackUrl || "/dashboard");
+        router.refresh();
+        return;
+      }
+
+      const {
+        signInWithEmailAndPassword,
+        sendEmailVerification,
+        signOut: firebaseSignOut,
+      } = await import("firebase/auth");
+      const { authErrorMessage, getFirebaseAuth } = await import(
+        "@/lib/firebase/client"
       );
-      await user.reload();
+      const firebaseAuth = getFirebaseAuth();
 
-      if (!user.emailVerified) {
-        // Nudge them with a fresh link, then refuse the session.
-        await sendEmailVerification(user).catch(() => {});
-        await firebaseSignOut(firebaseAuth);
-        setError(`Verify your email first — we sent a fresh link to ${email}.`);
-        return;
+      try {
+        const { user } = await signInWithEmailAndPassword(
+          firebaseAuth,
+          email,
+          password,
+        );
+        await user.reload();
+
+        if (!user.emailVerified) {
+          // Nudge them with a fresh link, then refuse the session.
+          await sendEmailVerification(user).catch(() => {});
+          await firebaseSignOut(firebaseAuth);
+          setError(`Verify your email first — we sent a fresh link to ${email}.`);
+          return;
+        }
+
+        // Swap the short-lived ID token for an httpOnly session cookie.
+        const idToken = await user.getIdToken();
+        const response = await fetch("/api/auth/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idToken }),
+        });
+
+        if (!response.ok) {
+          await firebaseSignOut(firebaseAuth);
+          setError("Could not start your session. Try again.");
+          return;
+        }
+
+        router.push(callbackUrl || "/dashboard");
+        router.refresh();
+      } catch (cause) {
+        setError(authErrorMessage(cause, "Email or password is incorrect."));
       }
-
-      // Swap the short-lived ID token for an httpOnly session cookie.
-      const idToken = await user.getIdToken();
-      const response = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
-
-      if (!response.ok) {
-        await firebaseSignOut(firebaseAuth);
-        setError("Could not start your session. Try again.");
-        return;
-      }
-
-      router.push(callbackUrl || "/dashboard");
-      router.refresh();
-    } catch (cause) {
-      setError(authErrorMessage(cause, "Email or password is incorrect."));
     } finally {
       setPending(false);
     }

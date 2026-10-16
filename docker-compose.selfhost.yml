@@ -1,0 +1,54 @@
+# Self-hosted Cairn: the app plus its own PostgreSQL. No Firebase involved.
+#
+#   cp .env.selfhost.example .env
+#   # edit .env (image, secrets, database password)
+#   docker compose -f docker-compose.selfhost.yml up -d
+name: cairn
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cairn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-cairn}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cairn} -d ${POSTGRES_DB:-cairn}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: ${CAIRN_IMAGE:?set CAIRN_IMAGE in .env to the image you pulled}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DEPLOYMENT_MODE: selfhost
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cairn}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-cairn}
+      SESSION_SECRET: ${SESSION_SECRET:?generate a SESSION_SECRET for .env}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}
+      # Leave the SMTP block empty to run without a mail server: verification
+      # links are then printed to the container log instead of emailed.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      # Reserved for uploaded files. No Cairn feature writes here yet, but the
+      # mount is here so a future one does not need a compose change.
+      - app-data:/data
+
+volumes:
+  db-data:
+  app-data:

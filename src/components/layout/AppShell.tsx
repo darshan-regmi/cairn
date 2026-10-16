@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore, useState } from "react";
-import { signOut as firebaseSignOut } from "firebase/auth";
 import { Dialog } from "@/components/ui/Dialog";
 import { CreateProjectForm } from "@/components/projects/CreateProjectForm";
-import { getFirebaseAuth } from "@/lib/firebase/client";
 import { canOwnProjects, type UserRole } from "@/lib/roles";
 import {
   ChevronIcon,
@@ -17,6 +15,19 @@ import {
   SignOutIcon,
   SupervisorIcon,
 } from "./icons";
+
+/** Cloud only: drop the browser's Firebase session before the cookie clears. */
+async function signOutOfFirebase() {
+  try {
+    const [{ signOut }, { getFirebaseAuth }] = await Promise.all([
+      import("firebase/auth"),
+      import("@/lib/firebase/client"),
+    ]);
+    await signOut(getFirebaseAuth());
+  } catch {
+    // The server action already cleared the cookie; this is best effort.
+  }
+}
 
 type NavItem = {
   href: string;
@@ -100,12 +111,14 @@ export function AppShell({
   role,
   projects,
   signOut,
+  mode,
   children,
 }: {
   userEmail: string;
   role: UserRole;
   projects: { id: string; title: string }[];
   signOut: () => Promise<void>;
+  mode: "cloud" | "selfhost";
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -235,12 +248,12 @@ export function AppShell({
               </span>
             </button>
 
-            {/* Drop the browser's Firebase session before the server action
-                clears the cookie, so it cannot be re-minted. */}
+            {/* In cloud mode drop the browser's Firebase session before the
+                server action clears the cookie, so it cannot be re-minted. */}
             <form
               action={signOut}
               onSubmit={() => {
-                void firebaseSignOut(getFirebaseAuth()).catch(() => {});
+                if (mode === "cloud") void signOutOfFirebase();
               }}
             >
               <button

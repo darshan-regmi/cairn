@@ -1,32 +1,33 @@
 "use server";
 
-import { Prisma } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
-import { isSignupAllowed } from "@/lib/config";
-import { adminAuth } from "@/lib/firebase/admin";
-import { signUpSchema } from "@/lib/validation";
+import { getAuthProvider, type AuthResult } from "@/lib/auth-provider";
+import { emailPasswordSchema, resetPasswordSchema } from "@/lib/validation";
 
-export type RegisterAccountResult = {
-  success: boolean;
-  error?: string;
-};
+export type { AuthResult };
 
-// The browser creates the Firebase account (so Firebase can send the
-// verification email); this records the app-side row. The ID token is verified
-// here, so the email and uid cannot be spoofed by the client.
+// Thin wrappers over the configured auth provider. The provider itself does the
+// real work and owns the trust boundary; the schemas here give the caller a
+// clear message before any work starts.
+
+// The browser creates the Firebase account (cloud) or posts the credentials
+// (self-host); this records the account for whichever mode is configured.
 export async function registerAccount(input: {
-  idToken: string;
+  idToken?: string;
+  email?: string;
+  password?: string;
   name?: string | null;
   role?: string | null;
-}): Promise<RegisterAccountResult> {
-  if (!isSignupAllowed()) {
-    return {
-      success: false,
-      error: "Sign-ups are closed. Ask the admin to invite you.",
-    };
-  }
+}): Promise<AuthResult> {
+  const provider = await getAuthProvider();
+  return provider.register(input);
+}
 
-  const parsed = signUpSchema.safeParse({ name: input.name, role: input.role });
+/** Self-host sign-in. Cloud signs in through the browser SDK instead. */
+export async function signInWithPassword(input: {
+  email: string;
+  password: string;
+}): Promise<AuthResult> {
+  const parsed = emailPasswordSchema.safeParse(input);
   if (!parsed.success) {
     return {
       success: false,
@@ -34,37 +35,70 @@ export async function registerAccount(input: {
     };
   }
 
-  let decoded: Awaited<ReturnType<ReturnType<typeof adminAuth>["verifyIdToken"]>>;
-  try {
-    decoded = await adminAuth().verifyIdToken(input.idToken);
-  } catch {
-    return { success: false, error: "Could not verify your account. Try again." };
+  const provider = await getAuthProvider();
+  return provider.signIn(parsed.data);
+}
+
+/** Starts a self-host password reset. Always reports success. */
+export async function requestPasswordReset(email: string): Promise<AuthResult> {
+  const parsed = emailPasswordSchema.safeParse({ email, password: "unused" });
+  if (!parsed.success) return { success: true };
+
+  const provider = await getAuthProvider();
+  // The link itself is only ever logged or emailed, never returned to the
+  // requester — otherwise anyone could reset anyone's password.
+  await provider.requestPasswordReset(parsed.data.email);
+  return { success: true };
+}
+
+/** Completes a self-host password reset from the emailed link's token. */
+export async function resetPassword(input: {
+  token: string;
+  password: string;
+}): Promise<AuthResult> {
+  const parsed = resetPasswordSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
   }
 
-  if (!decoded.email) {
-    return { success: false, error: "Your account has no email address." };
+  const provider = await getAuthProvider();
+  return provider.resetPassword(parsed.data.token, parsed.data.password);
+}
+
+/** Creates the very first self-host account. Refuses once any user exists. */
+export async function createFirstAdmin(input: {
+  email: string;
+  password: string;
+  name?: string | null;
+}): Promise<AuthResult> {
+  const parsed = emailPasswordSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
   }
 
-  const name =
-    parsed.data.name && parsed.data.name.length > 0 ? parsed.data.name : undefined;
+  const provider = await getAuthProvider();
+  return provider.createFirstAdmin({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    name: input.name,
+  });
+}
 
-  try {
-    await prisma.user.create({
-      data: {
-        email: decoded.email.toLowerCase(),
-        name,
-        role: parsed.data.role,
-        firebaseUid: decoded.uid,
-      },
-    });
-    return { success: true };
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return { success: false, error: "An account with that email already exists." };
-    }
-    throw error;
+/** Confirms a self-host email address from the link's token. */
+export async function verifyEmail(token: string): Promise<AuthResult> {
+  if (typeof token !== "string" || token.length === 0) {
+    return {
+      success: false,
+      error: "This verification link is invalid or has expired.",
+    };
   }
+
+  const provider = await getAuthProvider();
+  return provider.verifyEmail(token);
 }

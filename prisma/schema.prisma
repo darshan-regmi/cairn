@@ -100,6 +100,11 @@ model User {
   email          String          @unique
   // Firebase Auth owns the credential; this links to that account.
   firebaseUid    String?         @unique
+  // Self-host mode only: the scrypt hash of this account's password. Null for
+  // cloud accounts, where Firebase owns the credential.
+  passwordHash   String?
+  // Self-host mode only: when the address was confirmed; null means unverified.
+  emailVerifiedAt DateTime?
   name           String?
   role           UserRole        @default(NORMAL)
   avatarUrl      String?
