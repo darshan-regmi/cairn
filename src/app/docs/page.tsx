@@ -17,7 +17,7 @@ const accentButton =
 const inlineLink =
   "rounded text-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 const repoUrl = "https://github.com/darshan-regmi/cairn";
-const rawBase = "https://raw.githubusercontent.com/darshan-regmi/cairn/v0.2.0";
+const rawBase = "https://raw.githubusercontent.com/darshan-regmi/cairn/v0.3.0";
 
 const sections = [
   ["getting-started", "Getting started"],
@@ -290,7 +290,7 @@ export default async function DocsPage() {
           the environment template from GitHub:
         </p>
         <CodeBlock>{`mkdir cairn && cd cairn
-docker pull ghcr.io/darshan-regmi/cairn:0.2.0
+docker pull ghcr.io/darshan-regmi/cairn:0.3.0
 curl -O ${rawBase}/docker-compose.selfhost.yml
 curl -O ${rawBase}/.env.selfhost.example`}</CodeBlock>
         <p>
@@ -300,7 +300,7 @@ curl -O ${rawBase}/.env.selfhost.example`}</CodeBlock>
         </p>
         <CodeBlock>{`cp .env.selfhost.example .env
 # then edit .env:
-CAIRN_IMAGE="ghcr.io/darshan-regmi/cairn:0.2.0"
+CAIRN_IMAGE="ghcr.io/darshan-regmi/cairn:0.3.0"
 POSTGRES_PASSWORD="$(openssl rand -base64 24)"
 SESSION_SECRET="$(openssl rand -base64 48)"
 APP_URL="http://localhost:3000"`}</CodeBlock>

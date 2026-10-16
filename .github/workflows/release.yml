@@ -3,7 +3,7 @@ name: Release image
 # Builds the self-host image for both architectures and pushes it to the
 # GitHub Container Registry (GHCR). Runs only on version tags, e.g.
 #
-#   git tag v0.2.0 && git push origin v0.2.0
+#   git tag v0.3.0 && git push origin v0.3.0
 #
 # Nothing about the registry is hardcoded: the image path comes from the
 # repository and the credentials come from the workflow's own GITHUB_TOKEN.
