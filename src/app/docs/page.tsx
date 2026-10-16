@@ -7,7 +7,7 @@ import { userRoleBlurb } from "@/lib/roles";
 export const metadata: Metadata = {
   title: "Documentation · Cairn",
   description:
-    "How to plan and run a project with Cairn: milestones, tasks, meetings, questions, evidence and supervisor access.",
+    "How to plan and run a project with Cairn — milestones, tasks, meetings, questions, evidence, supervisor access and self-hosting.",
 };
 
 const quietLink =
@@ -16,6 +16,8 @@ const accentButton =
   "rounded-md bg-accent px-5 py-2.5 text-sm font-medium text-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink";
 const inlineLink =
   "rounded text-accent underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+const repoUrl = "https://github.com/darshan-regmi/cairn";
+const rawBase = "https://raw.githubusercontent.com/darshan-regmi/cairn/main";
 
 const sections = [
   ["getting-started", "Getting started"],
@@ -49,6 +51,14 @@ function Section({
         {children}
       </div>
     </section>
+  );
+}
+
+function CodeBlock({ children }: { children: string }) {
+  return (
+    <pre className="overflow-x-auto rounded-md border border-edge bg-surface p-3 font-mono text-xs leading-5 text-fg">
+      <code>{children}</code>
+    </pre>
   );
 }
 
@@ -270,7 +280,53 @@ export default async function DocsPage() {
           <code className="font-mono text-fg">selfhost</code> to keep accounts in
           your own PostgreSQL database and never contact Firebase.
         </p>
-        <p>Cairn is configured entirely through environment variables:</p>
+        <p>
+          Cairn runs as a public container image alongside its own PostgreSQL,
+          started with Docker Compose — no Node.js or database is needed on the
+          host. You need Docker Engine 24+ with the Compose v2 plugin.
+        </p>
+        <p>
+          In an empty directory, pull the image and download the Compose file and
+          the environment template from GitHub:
+        </p>
+        <CodeBlock>{`mkdir cairn && cd cairn
+docker pull ghcr.io/darshan-regmi/cairn:latest
+curl -O ${rawBase}/docker-compose.selfhost.yml
+curl -O ${rawBase}/.env.selfhost.example`}</CodeBlock>
+        <p>
+          Copy the template to{" "}
+          <code className="font-mono text-fg">.env</code> (Docker Compose reads
+          it automatically) and fill in at least these values:
+        </p>
+        <CodeBlock>{`cp .env.selfhost.example .env
+# then edit .env:
+CAIRN_IMAGE="ghcr.io/darshan-regmi/cairn:latest"
+POSTGRES_PASSWORD="$(openssl rand -base64 24)"
+SESSION_SECRET="$(openssl rand -base64 48)"
+APP_URL="http://localhost:3000"`}</CodeBlock>
+        <p>
+          <code className="font-mono text-fg">SESSION_SECRET</code> must be at
+          least 32 characters, and{" "}
+          <code className="font-mono text-fg">APP_URL</code> must be the address
+          people actually visit. Then start it:
+        </p>
+        <CodeBlock>{`docker compose -f docker-compose.selfhost.yml up -d`}</CodeBlock>
+        <p>
+          The first boot creates the database, applies the schema and starts the
+          app. Open <code className="font-mono text-fg">APP_URL</code> and the
+          first visitor is sent to the setup page to create the first account;
+          after that it redirects to the login screen.
+        </p>
+        <p>
+          No mail server is required. Without SMTP, verification and reset links
+          are written to the container log (
+          <code className="font-mono text-fg">docker compose logs app</code>); add{" "}
+          <code className="font-mono text-fg">SMTP_*</code> values to send real
+          email. Run it behind HTTPS with a reverse proxy, and back up the{" "}
+          <code className="font-mono text-fg">db-data</code> volume with{" "}
+          <code className="font-mono text-fg">pg_dump</code>.
+        </p>
+        <p>Every setting is an environment variable:</p>
         <ul className="list-disc space-y-1 pl-5">
           <li>
             <code className="font-mono text-fg">DEPLOYMENT_MODE</code> —{" "}
@@ -311,10 +367,44 @@ export default async function DocsPage() {
           </li>
         </ul>
         <p>
-          Apply the database schema with{" "}
-          <code className="font-mono text-fg">npx prisma migrate deploy</code>{" "}
-          before starting the app. The published Docker image does this for you
-          on startup.
+          The image, the Compose files, the full guide and every release live on
+          GitHub:{" "}
+          <a
+            href={repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={inlineLink}
+          >
+            source repository
+          </a>
+          ,{" "}
+          <a
+            href={`${repoUrl}/blob/main/SELF_HOSTING.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={inlineLink}
+          >
+            self-hosting guide
+          </a>
+          ,{" "}
+          <a
+            href={`${repoUrl}/releases`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={inlineLink}
+          >
+            releases
+          </a>{" "}
+          and the{" "}
+          <a
+            href={`${repoUrl}/pkgs/container/cairn`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={inlineLink}
+          >
+            container image
+          </a>
+          .
         </p>
       </Section>
 
@@ -327,6 +417,14 @@ export default async function DocsPage() {
           <Link href={signedIn ? "/dashboard" : "/login"} className={quietLink}>
             {signedIn ? "Dashboard" : "Log in"}
           </Link>
+          <a
+            href={repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={quietLink}
+          >
+            GitHub
+          </a>
         </nav>
       </footer>
     </main>
