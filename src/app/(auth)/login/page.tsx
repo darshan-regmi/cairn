@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { getAuthProvider } from "@/lib/auth-provider";
 import { isSignupAllowed } from "@/lib/config";
+import { deploymentMode } from "@/lib/deployment";
 import { safeCallbackUrl } from "@/lib/navigation";
 import { LoginForm } from "@/components/auth/LoginForm";
 
@@ -12,6 +14,13 @@ export default async function LoginPage({
 }) {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
+
+  const mode = deploymentMode();
+  // A brand-new self-host install has no accounts: send the first visitor to
+  // create the admin account instead of showing a login form nobody can use.
+  if (mode === "selfhost" && (await (await getAuthProvider()).needsSetup())) {
+    redirect("/setup");
+  }
 
   const { callbackUrl } = await searchParams;
   const callback = safeCallbackUrl(callbackUrl);
@@ -26,7 +35,7 @@ export default async function LoginPage({
         </p>
       </div>
 
-      <LoginForm callbackUrl={callback} />
+      <LoginForm callbackUrl={callback} mode={mode} />
 
       <p className="text-center text-sm text-muted">
         <Link

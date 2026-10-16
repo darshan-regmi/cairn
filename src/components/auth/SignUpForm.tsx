@@ -2,21 +2,29 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  createUserWithEmailAndPassword,
-  deleteUser,
-  sendEmailVerification,
-  signOut as firebaseSignOut,
-  updateProfile,
-} from "firebase/auth";
 import { registerAccount } from "@/actions/auth";
-import { authErrorMessage, getFirebaseAuth } from "@/lib/firebase/client";
 import { USER_ROLES, userRoleBlurb, userRoleLabel } from "@/lib/roles";
 
-export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
+const inputClass =
+  "w-full rounded-md border border-edge bg-transparent px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30";
+
+/**
+ * Creates an account. Cloud mode hands the credential to the Firebase SDK and
+ * records the row; self-host mode posts the credentials to a server action that
+ * stores them in this deployment's own database. The Firebase modules are
+ * imported only on the cloud path, so a self-host browser never loads them.
+ */
+export function SignUpForm({
+  callbackUrl,
+  mode,
+}: {
+  callbackUrl?: string;
+  mode: "cloud" | "selfhost";
+}) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [verifyLink, setVerifyLink] = useState<string | null>(null);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,9 +36,29 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
     const email = String(data.get("email") ?? "");
     const password = String(data.get("password") ?? "");
     const role = String(data.get("role") ?? "NORMAL");
-    const firebaseAuth = getFirebaseAuth();
 
     try {
+      if (mode === "selfhost") {
+        const result = await registerAccount({ email, password, name, role });
+        if (!result.success) {
+          setError(result.error ?? "Could not create your account.");
+          return;
+        }
+        setVerifyLink(result.link ?? null);
+        setSentTo(email);
+        return;
+      }
+
+      const {
+        createUserWithEmailAndPassword,
+        updateProfile,
+        sendEmailVerification,
+        signOut: firebaseSignOut,
+        deleteUser,
+      } = await import("firebase/auth");
+      const { getFirebaseAuth } = await import("@/lib/firebase/client");
+      const firebaseAuth = getFirebaseAuth();
+
       // Firebase owns the credential so it can send the verification email.
       const { user } = await createUserWithEmailAndPassword(
         firebaseAuth,
@@ -57,7 +85,12 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
       await firebaseSignOut(firebaseAuth);
       setSentTo(email);
     } catch (cause) {
-      setError(authErrorMessage(cause, "Could not create your account."));
+      if (mode === "selfhost") {
+        setError("Could not create your account. Try again.");
+      } else {
+        const { authErrorMessage } = await import("@/lib/firebase/client");
+        setError(authErrorMessage(cause, "Could not create your account."));
+      }
     } finally {
       setPending(false);
     }
@@ -67,9 +100,21 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
     return (
       <div className="space-y-4">
         <p className="rounded-md border border-edge bg-accent/10 px-3 py-2 text-sm text-accent">
-          Almost there. We sent a verification link to {sentTo}. Open it, then
-          log in.
+          {mode === "selfhost"
+            ? `Account created for ${sentTo}. Verify your email address, then log in.`
+            : `Almost there. We sent a verification link to ${sentTo}. Open it, then log in.`}
         </p>
+        {verifyLink && (
+          <p className="break-all rounded-md border border-edge px-3 py-2 text-xs text-muted">
+            No mail server is configured, so use this verification link:{" "}
+            <a
+              href={verifyLink}
+              className="text-accent underline underline-offset-4"
+            >
+              {verifyLink}
+            </a>
+          </p>
+        )}
         <Link
           href={
             callbackUrl
@@ -95,7 +140,7 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
           name="name"
           type="text"
           autoComplete="name"
-          className="w-full rounded-md border border-edge bg-transparent px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className={inputClass}
         />
       </div>
 
@@ -109,7 +154,7 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
           type="email"
           autoComplete="email"
           required
-          className="w-full rounded-md border border-edge bg-transparent px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className={inputClass}
         />
       </div>
 
@@ -124,7 +169,7 @@ export function SignUpForm({ callbackUrl }: { callbackUrl?: string }) {
           autoComplete="new-password"
           required
           minLength={8}
-          className="w-full rounded-md border border-edge bg-transparent px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className={inputClass}
         />
         <p className="text-xs text-muted">At least 8 characters.</p>
       </div>

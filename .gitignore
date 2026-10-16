@@ -33,6 +33,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+# The self-host template is meant to be shared; it holds no real secrets.
+!.env.selfhost.example
 
 # local service-account credentials (never commit)
 /.secrets/

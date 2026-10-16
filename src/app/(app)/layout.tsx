@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth, clearSession } from "@/lib/auth";
+import { deploymentMode } from "@/lib/deployment";
 import { listOwnedProjectsForUser } from "@/lib/data";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -17,6 +18,7 @@ export default async function AppLayout({
     <AppShell
       userEmail={session.user.email ?? ""}
       role={session.user.role}
+      mode={deploymentMode()}
       projects={projects.map((project) => ({
         id: project.id,
         title: project.title,

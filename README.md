@@ -34,7 +34,9 @@ docker compose up -d
 # 2. Create environment variables
 cp .env.example .env
 # then fill in the Firebase web keys and point FIREBASE_SERVICE_ACCOUNT at a
-# service-account JSON file (see .env.example)
+# service-account JSON file (see .env.example). For a Firebase-free install set
+# DEPLOYMENT_MODE="selfhost" with SESSION_SECRET and APP_URL instead — see
+# "Deployment modes" below.
 
 # 3. Install dependencies (generates the Prisma client automatically)
 npm install
@@ -92,7 +94,10 @@ src/
       supervisor/[projectId]/          # read-only review view + comments
     (auth)/login        # sign-in page (forgot-password link lives here)
     (auth)/signup       # create-account page (student / supervisor choice)
+    (auth)/setup        # first-run account, self-host mode only
     (auth)/reset        # request a password reset email
+    (auth)/reset/[token]   # choose a new password (self-host)
+    (auth)/verify/[token]  # confirm an email address (self-host)
     (auth)/invite/[token]  # accept a supervisor invitation (public)
     share/[token]       # public, read-only project view (share link)
     error.tsx           # 500 boundary with a request id
@@ -100,7 +105,8 @@ src/
     not-found.tsx       # 404 page with a way back
     api/auth/session    # swaps a Firebase ID token for the session cookie
   actions/
-    auth.ts             # server action: registerAccount (Firebase token → user row)
+    auth.ts             # registerAccount, signInWithPassword, resetPassword,
+                        #   requestPasswordReset, verifyEmail, createFirstAdmin
     projects.ts         # createProject, importProject, milestone CRUD + move/details, project edit/complete/reopen/delete
     deliverables.ts     # add/toggle/update/delete milestone deliverables
     dashboard.ts        # markCommentsRead (supervisor-comment watermark)
@@ -132,8 +138,17 @@ src/
     StatusBadge.tsx     # shared status badge
   lib/
     access.ts           # membership filters + per-project role lookup
-    auth.ts             # NextAuth config (Credentials + JWT)
+    auth.ts             # auth() session guard + clearSession
+    auth-provider.ts    # AuthProvider seam; picks the adapter from DEPLOYMENT_MODE
+    auth-firebase.ts    # cloud adapter: Firebase session cookie + account rows
+    auth-selfhost.ts    # self-host adapter: password rows live in Postgres
     config.ts           # environment feature flags (ALLOW_SIGNUP)
+    deployment.ts       # DEPLOYMENT_MODE parsing + startup config check
+    password.ts         # scrypt password hashing
+    session.ts          # session cookie name + attributes
+    tokens.ts           # signed session, email-verification and reset tokens
+    rate-limit.ts       # in-memory failure limiter for sign-in
+    smtp.ts             # minimal SMTP client for verification / reset mail
     prisma.ts           # Prisma client singleton
     validation.ts       # Zod schemas
     invites.ts          # pure invite token / hashing / expiry helpers
@@ -157,6 +172,37 @@ prisma/
 tests/                  # Vitest unit tests + DB-backed authorization tests
 .github/workflows/ci.yml
 ```
+
+## Deployment modes
+
+Cairn has two ways to store accounts, chosen by a single environment variable,
+`DEPLOYMENT_MODE`:
+
+| Mode | Accounts live in | Firebase |
+| --- | --- | --- |
+| `cloud` (default) | Firebase Auth | required |
+| `selfhost` | this PostgreSQL database | never loaded or called |
+
+In `selfhost` mode there is no Firebase dependency at all: accounts are email +
+password rows in Postgres (hashed with scrypt), sessions are signed httpOnly
+cookies, and verification and reset links are signed tokens. The first visitor
+to a fresh install creates the first account at `/setup`.
+
+To run the published image with docker compose, see
+[`SELF_HOSTING.md`](./SELF_HOSTING.md); `.env.selfhost.example` documents every
+variable. To run self-host mode from this checkout instead:
+
+```bash
+DEPLOYMENT_MODE=selfhost
+DATABASE_URL="postgresql://cairn:cairn@localhost:5433/cairn"
+SESSION_SECRET="at-least-32-characters-generated-with-openssl"
+APP_URL="http://localhost:3000"
+```
+
+`SESSION_SECRET` is required and must be at least 32 characters; the app refuses
+to start without it. Set `SMTP_*` (see `.env.selfhost.example`) to send
+verification and reset mail; without it those links are printed to the logs
+instead.
 
 ## Conventions
 
@@ -267,5 +313,11 @@ Importing the same title + dates twice for the same user is refused.
   login page links to a password reset that Firebase sends for you.
 - **Landing and docs (done):** a public landing page at `/` and a `/docs` guide
   covering the whole workflow and self-hosting configuration.
+- **Self-hosted deployment (done):** a `DEPLOYMENT_MODE` switch behind an
+  `AuthProvider` seam. In `selfhost` mode accounts are Postgres rows with scrypt
+  password hashes, sessions are signed httpOnly cookies, verification and reset
+  links are signed tokens, sign-in is rate limited, and the first run creates the
+  first account at `/setup`. The Firebase SDK is never imported or called. Ships
+  as a multi-stage Docker image that migrates the database on startup.
 - **Still to build:** report helper, all-tasks view, settings, notifications, and
   the v2 self-hosting polish items.
