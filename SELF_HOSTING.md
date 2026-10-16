@@ -5,8 +5,8 @@ accounts, sessions and every project, task and comment — lives in a PostgreSQL
 database that you run. No external service is contacted, and no account with us
 is needed.
 
-This guide covers a single-container setup with Docker Compose: the app plus its
-database, on one host.
+This guide covers a single-host setup with Docker Compose: the app plus its own
+PostgreSQL database, both in containers.
 
 ## Prerequisites
 
@@ -20,55 +20,54 @@ in containers.
 
 ## Quick start
 
-1. Create a directory and download the two files you need:
+The container image is public, so no registry login is needed. You need two
+small config files next to each other, which you download from the repository.
 
-   ```bash
-   mkdir cairn && cd cairn
-   # place docker-compose.selfhost.yml and .env.selfhost.example here
-   ```
+Pull the image into an empty directory:
 
-2. Create your `.env` from the template:
+```bash
+mkdir cairn && cd cairn
+docker pull ghcr.io/darshan-regmi/cairn:latest
+```
 
-   ```bash
-   cp .env.selfhost.example .env
-   ```
+Download the Compose file and the environment template from GitHub:
 
-3. Fill in the blanks in `.env`. At minimum:
+```bash
+curl -O https://raw.githubusercontent.com/darshan-regmi/cairn/main/docker-compose.selfhost.yml
+curl -O https://raw.githubusercontent.com/darshan-regmi/cairn/main/.env.selfhost.example
+```
 
-   ```bash
-   # The image you pulled:
-   CAIRN_IMAGE="ghcr.io/your-org/cairn:latest"
+Copy the template and fill in the blanks. At minimum, set these four:
 
-   # A database password you choose:
-   POSTGRES_PASSWORD="$(openssl rand -base64 24)"
+```bash
+cp .env.selfhost.example .env
+# then edit .env:
+CAIRN_IMAGE="ghcr.io/darshan-regmi/cairn:latest"
+POSTGRES_PASSWORD="$(openssl rand -base64 24)"
+SESSION_SECRET="$(openssl rand -base64 48)"
+APP_URL="http://localhost:3000"
+```
 
-   # The secret that signs sessions and links (32+ characters):
-   SESSION_SECRET="$(openssl rand -base64 48)"
+The app refuses to start if `SESSION_SECRET` is missing or shorter than 32
+characters, and Compose refuses to start if a password is blank — that is
+deliberate, so a misconfigured install fails loudly instead of running
+insecurely.
 
-   # The address people will actually visit:
-   APP_URL="http://localhost:3000"
-   ```
+Start it:
 
-   The app refuses to start if `SESSION_SECRET` is missing or shorter than 32
-   characters, and Compose refuses to start if a password is blank — that is
-   deliberate, so a misconfigured install fails loudly instead of running
-   insecurely.
+```bash
+docker compose -f docker-compose.selfhost.yml up -d
+```
 
-4. Start it:
+The first boot creates the database, applies the schema, then starts the app.
+Watch it come up with:
 
-   ```bash
-   docker compose -f docker-compose.selfhost.yml up -d
-   ```
+```bash
+docker compose -f docker-compose.selfhost.yml logs -f app
+```
 
-   The first boot creates the database, applies the schema, then starts the app.
-   Watch it come up with:
-
-   ```bash
-   docker compose -f docker-compose.selfhost.yml logs -f app
-   ```
-
-5. Open `APP_URL` in a browser. Because no accounts exist yet, you are sent to
-   the **first-run setup** page.
+Open `APP_URL` in a browser. Because no accounts exist yet, you are sent to the
+**first-run setup** page.
 
 ## First-run admin setup
 
@@ -94,7 +93,7 @@ Every value lives in `.env` next to `docker-compose.selfhost.yml`.
 
 | Variable | Required | Default | What it does |
 | --- | --- | --- | --- |
-| `CAIRN_IMAGE` | yes | — | The image to run, e.g. `ghcr.io/your-org/cairn:latest`. |
+| `CAIRN_IMAGE` | yes | — | The image to run, e.g. `ghcr.io/darshan-regmi/cairn:latest`. |
 | `APP_PORT` | no | `3000` | Host port the app is published on. |
 | `POSTGRES_USER` | no | `cairn` | Database user created in the `db` container. |
 | `POSTGRES_PASSWORD` | yes | — | Database password. Choose your own. |
@@ -188,7 +187,7 @@ traffic, so a fresh image brings the schema up to date by itself. Take a backup
 first if the release notes mention schema changes.
 
 To pin a specific version, set `CAIRN_IMAGE` to a version tag rather than
-`latest`, e.g. `ghcr.io/your-org/cairn:0.2.0`.
+`latest`, e.g. `ghcr.io/darshan-regmi/cairn:0.1.0`.
 
 ## Putting it behind HTTPS
 
