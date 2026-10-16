@@ -55,3 +55,6 @@ next-env.d.ts
 # OpenCode local state
 .opencode/memory/
 .opencode/HANDOFF.md
+
+# Local session handoff notes
+/handoff.md
