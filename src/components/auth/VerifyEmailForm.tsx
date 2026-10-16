@@ -1,14 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { verifyEmail } from "@/actions/auth";
 
 /** Confirms the address a verification link was sent to. */
 export function VerifyEmailForm({ token }: { token: string }) {
+  const router = useRouter();
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  // The address is confirmed, so there is nothing left to do on this page.
+  useEffect(() => {
+    if (done) router.replace("/login?verified=1");
+  }, [done, router]);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,7 +44,7 @@ export function VerifyEmailForm({ token }: { token: string }) {
           Your email address is verified. You can log in now.
         </p>
         <Link
-          href="/login"
+          href="/login?verified=1"
           className="block w-full rounded-md bg-accent px-3 py-2 text-center text-sm font-medium text-accent-ink transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
         >
           Go to log in

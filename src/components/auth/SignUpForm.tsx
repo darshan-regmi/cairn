@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { registerAccount } from "@/actions/auth";
 import { USER_ROLES, userRoleBlurb, userRoleLabel } from "@/lib/roles";
 
@@ -17,14 +17,28 @@ const inputClass =
 export function SignUpForm({
   callbackUrl,
   mode,
+  verifyRequired,
 }: {
   callbackUrl?: string;
   mode: "cloud" | "selfhost";
+  /** False when the new account can log in straight away (self-host, no SMTP). */
+  verifyRequired: boolean;
 }) {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [verifyLink, setVerifyLink] = useState<string | null>(null);
+
+  /** Where to send someone whose account was just created. */
+  function nextHref(email: string) {
+    if (verifyRequired) {
+      const params = new URLSearchParams({ email });
+      if (callbackUrl) params.set("callbackUrl", callbackUrl);
+      return `/verify-email?${params}`;
+    }
+    return callbackUrl
+      ? `/login?verified=1&callbackUrl=${encodeURIComponent(callbackUrl)}`
+      : "/login?verified=1";
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,8 +58,7 @@ export function SignUpForm({
           setError(result.error ?? "Could not create your account.");
           return;
         }
-        setVerifyLink(result.link ?? null);
-        setSentTo(email);
+        router.push(nextHref(email));
         return;
       }
 
@@ -53,7 +66,6 @@ export function SignUpForm({
         createUserWithEmailAndPassword,
         updateProfile,
         sendEmailVerification,
-        signOut: firebaseSignOut,
         deleteUser,
       } = await import("firebase/auth");
       const { getFirebaseAuth } = await import("@/lib/firebase/client");
@@ -68,8 +80,9 @@ export function SignUpForm({
 
       try {
         if (name) await updateProfile(user, { displayName: name });
-        await sendEmailVerification(user);
         const idToken = await user.getIdToken();
+        // Register before mailing: a link sent first points at an account the
+        // rollback below deletes, so every new address would look "used".
         const result = await registerAccount({ idToken, name, role });
         if (!result.success) {
           await deleteUser(user).catch(() => {});
@@ -82,8 +95,13 @@ export function SignUpForm({
         throw cause;
       }
 
-      await firebaseSignOut(firebaseAuth);
-      setSentTo(email);
+      // The row exists now, so a failed send must not roll the account back —
+      // the verify page offers "Resend email" for exactly this.
+      await sendEmailVerification(user).catch(() => {});
+
+      // The Firebase session stays: the verify page re-reads it to see whether
+      // the address is confirmed yet, then signs out on the way to /login.
+      router.push(nextHref(email));
     } catch (cause) {
       if (mode === "selfhost") {
         setError("Could not create your account. Try again.");
@@ -94,39 +112,6 @@ export function SignUpForm({
     } finally {
       setPending(false);
     }
-  }
-
-  if (sentTo) {
-    return (
-      <div className="space-y-4">
-        <p className="rounded-md border border-edge bg-accent/10 px-3 py-2 text-sm text-accent">
-          {mode === "selfhost"
-            ? `Account created for ${sentTo}. Verify your email address, then log in.`
-            : `Almost there. We sent a verification link to ${sentTo}. Open it, then log in.`}
-        </p>
-        {verifyLink && (
-          <p className="break-all rounded-md border border-edge px-3 py-2 text-xs text-muted">
-            No mail server is configured, so use this verification link:{" "}
-            <a
-              href={verifyLink}
-              className="text-accent underline underline-offset-4"
-            >
-              {verifyLink}
-            </a>
-          </p>
-        )}
-        <Link
-          href={
-            callbackUrl
-              ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
-              : "/login"
-          }
-          className="block w-full rounded-md bg-accent px-3 py-2 text-center text-sm font-medium text-accent-ink transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
-        >
-          Go to log in
-        </Link>
-      </div>
-    );
   }
 
   return (

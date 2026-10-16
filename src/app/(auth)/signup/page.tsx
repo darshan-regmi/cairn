@@ -5,6 +5,7 @@ import { getAuthProvider } from "@/lib/auth-provider";
 import { isSignupAllowed } from "@/lib/config";
 import { deploymentMode } from "@/lib/deployment";
 import { safeCallbackUrl } from "@/lib/navigation";
+import { isEmailConfigured } from "@/lib/smtp";
 import { SignUpForm } from "@/components/auth/SignUpForm";
 
 export default async function SignUpPage({
@@ -25,6 +26,9 @@ export default async function SignUpPage({
   const { callbackUrl } = await searchParams;
   const callback = safeCallbackUrl(callbackUrl);
   const signupAllowed = isSignupAllowed();
+  // Cloud always emails a verification link; self-host only does when it has a
+  // mail server — without one the account is created already verified.
+  const verifyRequired = mode === "cloud" || isEmailConfigured();
 
   return (
     <div className="space-y-6">
@@ -36,7 +40,11 @@ export default async function SignUpPage({
       </div>
 
       {signupAllowed ? (
-        <SignUpForm callbackUrl={callback} mode={mode} />
+        <SignUpForm
+          callbackUrl={callback}
+          mode={mode}
+          verifyRequired={verifyRequired}
+        />
       ) : (
         <p className="rounded-md border border-edge bg-accent/10 px-3 py-2 text-sm text-accent">
           Sign-ups are closed. Ask the admin to invite you.

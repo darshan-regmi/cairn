@@ -10,7 +10,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>;
+  searchParams: Promise<{ callbackUrl?: string; verified?: string }>;
 }) {
   const session = await auth();
   if (session?.user) redirect("/dashboard");
@@ -22,7 +22,7 @@ export default async function LoginPage({
     redirect("/setup");
   }
 
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl, verified } = await searchParams;
   const callback = safeCallbackUrl(callbackUrl);
   const signupAllowed = isSignupAllowed();
 
@@ -34,6 +34,12 @@ export default async function LoginPage({
           Continue planning your project.
         </p>
       </div>
+
+      {verified && (
+        <p className="rounded-md border border-edge bg-accent/10 px-3 py-2 text-sm text-accent">
+          Your email is verified. Log in to continue.
+        </p>
+      )}
 
       <LoginForm callbackUrl={callback} mode={mode} />
 
