@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   assertDeploymentConfig,
@@ -88,5 +90,16 @@ describe("assertDeploymentConfig", () => {
     process.env.DATABASE_URL = "postgresql://cairn:cairn@localhost:5433/cairn";
     process.env.SESSION_SECRET = "a".repeat(MIN_SESSION_SECRET_LENGTH);
     expect(() => assertDeploymentConfig()).not.toThrow();
+  });
+});
+
+describe("self-host image", () => {
+  // `next build` writes neither public/ nor .next/static into the standalone
+  // output, so the runner stage has to copy both by hand or every asset 404s.
+  const dockerfile = readFileSync(join(process.cwd(), "Dockerfile"), "utf8");
+
+  it("copies the static bundle and public/ into the runner stage", () => {
+    expect(dockerfile).toContain("/app/.next/static ./.next/static");
+    expect(dockerfile).toContain("/app/public ./public");
   });
 });
