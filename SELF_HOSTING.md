@@ -27,14 +27,14 @@ Pull the image into an empty directory:
 
 ```bash
 mkdir cairn && cd cairn
-docker pull ghcr.io/darshan-regmi/cairn:0.3.0
+docker pull ghcr.io/darshan-regmi/cairn:0.3.1
 ```
 
 Download the Compose file and the environment template from GitHub:
 
 ```bash
-curl -O https://raw.githubusercontent.com/darshan-regmi/cairn/v0.3.0/docker-compose.selfhost.yml
-curl -O https://raw.githubusercontent.com/darshan-regmi/cairn/v0.3.0/.env.selfhost.example
+curl -O https://raw.githubusercontent.com/darshan-regmi/cairn/v0.3.1/docker-compose.selfhost.yml
+curl -O https://raw.githubusercontent.com/darshan-regmi/cairn/v0.3.1/.env.selfhost.example
 ```
 
 Copy the template and fill in the blanks. At minimum, set these four:
@@ -42,7 +42,7 @@ Copy the template and fill in the blanks. At minimum, set these four:
 ```bash
 cp .env.selfhost.example .env
 # then edit .env:
-CAIRN_IMAGE="ghcr.io/darshan-regmi/cairn:0.3.0"
+CAIRN_IMAGE="ghcr.io/darshan-regmi/cairn:0.3.1"
 POSTGRES_PASSWORD="$(openssl rand -base64 24)"
 SESSION_SECRET="$(openssl rand -base64 48)"
 APP_URL="http://localhost:3000"
@@ -93,7 +93,7 @@ Every value lives in `.env` next to `docker-compose.selfhost.yml`.
 
 | Variable | Required | Default | What it does |
 | --- | --- | --- | --- |
-| `CAIRN_IMAGE` | yes | — | The image to run, e.g. `ghcr.io/darshan-regmi/cairn:0.3.0`. |
+| `CAIRN_IMAGE` | yes | — | The image to run, e.g. `ghcr.io/darshan-regmi/cairn:0.3.1`. |
 | `APP_PORT` | no | `3000` | Host port the app is published on. |
 | `POSTGRES_USER` | no | `cairn` | Database user created in the `db` container. |
 | `POSTGRES_PASSWORD` | yes | — | Database password. Choose your own. |
@@ -187,7 +187,7 @@ traffic, so a fresh image brings the schema up to date by itself. Take a backup
 first if the release notes mention schema changes.
 
 To pin a specific version, set `CAIRN_IMAGE` to a version tag rather than
-`latest`, e.g. `ghcr.io/darshan-regmi/cairn:0.3.0`.
+`latest`, e.g. `ghcr.io/darshan-regmi/cairn:0.3.1`.
 
 ## Putting it behind HTTPS
 

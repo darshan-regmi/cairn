@@ -17,8 +17,8 @@ set -euo pipefail
 
 CAIRN_USER="${CAIRN_USER:-cairn}"
 APP_DIR="${APP_DIR:-/opt/cairn}"
-CAIRN_REF="${CAIRN_REF:-v0.3.0}"
-CAIRN_IMAGE="${CAIRN_IMAGE:-ghcr.io/darshan-regmi/cairn:0.3.0}"
+CAIRN_REF="${CAIRN_REF:-v0.3.1}"
+CAIRN_IMAGE="${CAIRN_IMAGE:-ghcr.io/darshan-regmi/cairn:0.3.1}"
 APP_PORT="${APP_PORT:-3000}"
 DOMAIN="${DOMAIN:-}"
 SSH_PORT="${SSH_PORT:-22}"
