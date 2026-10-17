@@ -59,6 +59,9 @@ COPY --from=prisma-cli /cli/node_modules ./node_modules
 # .next/standalone already carries the traced production node_modules.
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+# The standalone output excludes public/, so it is copied by hand. Without this
+# every file in public/ (the logo, icons, favicon) 404s in the self-host image.
+COPY --from=builder /app/public ./public
 
 # The schema and Prisma config travel with the image so migrations can run.
 COPY --from=builder /app/prisma ./prisma
