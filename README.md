@@ -1,323 +1,230 @@
 # Cairn
 
-A planner for running a project from start to finish: milestone timelines, a
-kanban task board, meeting logs, open questions, milestone reviews, a read-only
-share link, and evidence collection for the write-up.
+**A self-hostable planner for running a project end to end — milestones, kanban, meetings, open questions, reviews and evidence in one place.**
 
-The app connects the pieces: a task agreed in a meeting can be turned into a
-kanban card in one click, an open question can be adopted as a task, and the
-planning history becomes material you can write up later.
+Most student and side projects die in a folder full of disconnected notes: a kanban board here, meeting notes in a document, questions in a chat thread, and the "proof it works" screenshots scattered everywhere. Cairn connects those pieces so that the plan, the work, and the evidence for it live in the same system.
 
-## Tech stack
+[![CI](https://github.com/darshan-regmi/cairn/actions/workflows/ci.yml/badge.svg)](https://github.com/darshan-regmi/cairn/actions/workflows/ci.yml)
+[![Release image](https://github.com/darshan-regmi/cairn/actions/workflows/release.yml/badge.svg)](https://github.com/darshan-regmi/cairn/actions/workflows/release.yml)
+![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?logo=next.js&logoColor=white)
+![TypeScript strict](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-multi--arch-2496ED?logo=docker&logoColor=white)
 
-- **Next.js 16** (App Router, React 19, TypeScript strict, Turbopack)
-- **Tailwind CSS v4** with a small set of design tokens and dark mode support
-- **Prisma 7** with PostgreSQL (driver adapter `@prisma/adapter-pg`)
-- **Firebase Authentication** — email/password sign-in that requires a verified
-  address; the server swaps the ID token for an httpOnly session cookie
-- **Zod** — every server action re-validates its input
-- **Vitest** + **ESLint** + a **GitHub Actions** CI workflow
-- **docker compose** for local PostgreSQL
-- **dnd-kit** for the kanban drag and drop
+> **Status:** v1 feature-complete and in active use; self-hosted via Docker. See [Roadmap](#roadmap) for what is next.
 
-## Prerequisites
+---
 
-- Node.js 22+ (tested on 24)
-- Docker (for the local database)
+## Screenshots
+
+<!-- Replace these placeholders with real captures. See docs/screenshots/README.md for the exact list and sizes. -->
+
+| Focus dashboard | Kanban board | Milestone timeline |
+| --- | --- | --- |
+| _`docs/screenshots/dashboard.png`_ | _`docs/screenshots/kanban.png`_ | _`docs/screenshots/timeline.png`_ |
+
+| Supervisor review | Public share link | Self-host setup |
+| --- | --- | --- |
+| _`docs/screenshots/supervisor.png`_ | _`docs/screenshots/share.png`_ | _`docs/screenshots/setup.png`_ |
+
+## Live demo
+
+<!-- Publish a demo instance and put the URL here. Until then, delete this section rather than leaving a dead link. -->
+
+**Demo:** `https://<your-demo-host>` — sign in with `demo@example.com` / `demo1234`.
+
+---
+
+## The problem
+
+A project that runs for a semester has four kinds of truth that never stay in sync:
+
+1. **The plan** — what the milestones are and when they land.
+2. **The work** — what is actually being done this week.
+3. **The conversations** — what was agreed in the last supervision meeting.
+4. **The evidence** — the links that prove a milestone is really finished.
+
+Cairn makes those four things the same object graph. A task agreed in a meeting becomes a kanban card in one click. An open question becomes a task with its decision recorded. A milestone accumulates evidence, and the whole plan can be handed to a supervisor as a read-only link.
+
+## What it does
+
+| Surface | What it gives you |
+| --- | --- |
+| **Focus dashboard** | One active project at a glance: totals, the phase in progress, what is due this week, unread supervisor comments. |
+| **Milestone timeline** | Ordered milestones with progress, overdue flags, reorder/reschedule, and a review verdict on each. |
+| **Kanban board** | `dnd-kit` board per milestone — drag between To do / In progress / Blocked / Done, plus reordering. |
+| **Meetings** | Date, next date, what went well, problems. Agreed actions convert to real tasks and stay linked. |
+| **Question board** | `OPEN → ADOPTED / PARKED / DROPPED`, with "adopt as task" recording the decision. |
+| **Milestone reviews** | Verdict (on track / partly met / off track) plus asked-for, demonstrated and promised notes. |
+| **Evidence** | Demo, screenshot, test result, benchmark, commit, PR or feedback — each with a date and a note on what it proves. |
+| **Comments** | Threads on milestones, tasks, meetings, questions, reviews and evidence. Authors edit/delete their own. |
+| **Share links** | Public read-only project view, optional expiry, revocable in one click. |
+| **Supervisor mode** | Invite a supervisor by capability link; they get a read-only view plus comment access. |
+| **CSV import** | Import a GanttProject CSV: depth-1 rows become the project, depth-2 milestones, depth-3 tasks, with `Predecessors` turned into dependency ordering. |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Browser
+        RSC[React 19 Server Components]
+        DND[dnd-kit kanban]
+    end
+
+    subgraph "Next.js 16 server"
+        PAGES[App Router pages<br/>route groups: (app) / (auth) / share]
+        ACTIONS[Server Actions<br/>src/actions/*]
+        ZOD[Zod validation<br/>every action, every input]
+        ACCESS[Access layer<br/>src/lib/access.ts<br/>memberWhere / ownerWhere]
+        AUTH[AuthProvider seam<br/>src/lib/auth-provider.ts]
+        PURE[Pure domain logic<br/>src/lib/*.ts]
+    end
+
+    subgraph Data
+        PRISMA[Prisma 7 + @prisma/adapter-pg]
+        PG[(PostgreSQL 16)]
+    end
+
+    subgraph "Auth adapters"
+        FB[Firebase Admin SDK<br/>DEPLOYMENT_MODE=cloud]
+        SH[Postgres accounts + scrypt<br/>DEPLOYMENT_MODE=selfhost]
+    end
+
+    RSC --> PAGES
+    DND --> ACTIONS
+    PAGES --> ACTIONS
+    PAGES --> ACCESS
+    ACTIONS --> ZOD --> ACCESS --> PRISMA --> PG
+    ACTIONS --> PURE
+    PAGES --> AUTH
+    AUTH --> FB
+    AUTH --> SH
+    SH --> PG
+    FB -.->|ID token → httpOnly session cookie| AUTH
+```
+
+**Request path for a mutation:** client component → server action → Zod parse → membership/role guard → Prisma transaction → `revalidatePath`. There is no REST or GraphQL layer: every mutation is a server action, which keeps authorization in one place instead of spread across endpoints.
+
+### Engineering decisions worth reviewing
+
+| Decision | Why | Where |
+| --- | --- | --- |
+| **Auth behind a provider seam** | One `DEPLOYMENT_MODE` env var swaps Firebase for self-hosted accounts. In `selfhost` mode the Firebase SDK is never imported, so the app runs with zero third-party auth dependency. | `src/lib/auth-provider.ts`, `auth-firebase.ts`, `auth-selfhost.ts` |
+| **Authorization is a query scope, not a check** | Every read goes through `memberWhere` (owner *or* supervisor), every write through `ownerWhere` (owner only). Foreign IDs return `null` and the page 404s — so an access bug cannot leak another user's project. | `src/lib/access.ts`, `src/lib/data.ts` |
+| **Capability links for invites and sharing** | Raw tokens are shown once and stored as SHA-256 hashes, with expiry. No invite email dependency; the owner sends the link. | `src/lib/invites.ts`, `src/lib/share.ts` |
+| **Business logic is pure and DB-free** | Progress, overdue, days-left, dashboard aggregation, CSV parsing and supervisor summaries are plain functions — which is why 207 tests run without a database. | `src/lib/dashboard.ts`, `milestone-metrics.ts`, `csv-import.ts`, `supervisor.ts` |
+| **Ordering without gaps** | Milestone reorder uses a two-pass transaction to keep per-project `order` unique while moving rows. | `src/actions/projects.ts` |
+| **Date-only values, one clock** | Due dates are stored as local midnight and all derived states come from one shared helper with edge-case tests. | `src/lib/milestone-metrics.ts` |
+| **Self-host image that migrates itself** | Multi-stage build, non-root user, healthcheck, `prisma migrate deploy` on boot in selfhost mode only. | `Dockerfile`, `docker-entrypoint.sh` |
+
+### Security model
+
+- Sessions are signed httpOnly cookies; the Firebase ID token is exchanged server-side at `/api/auth/session`.
+- Self-host passwords are hashed with `scrypt`; sign-in is rate limited (`src/lib/rate-limit.ts`).
+- Email verification and password reset use signed, expiring tokens.
+- `SESSION_SECRET` is validated at startup — the app refuses to boot without ≥32 characters.
+- Every server action re-validates its input with Zod; nothing trusts the client payload.
+- No secret ever enters the build context: `.env*` and `.secrets/` are ignored, and the image reads configuration at runtime.
+
+---
 
 ## Getting started
 
+**Prerequisites:** Node.js 22+ (tested on 24) and Docker.
+
 ```bash
-# 1. Start PostgreSQL (host port 5433 — 5432 is often taken)
+# 1. Postgres on host port 5433 (5432 is usually taken)
 docker compose up -d
 
-# 2. Create environment variables
+# 2. Environment
 cp .env.example .env
-# then fill in the Firebase web keys and point FIREBASE_SERVICE_ACCOUNT at a
-# service-account JSON file (see .env.example). For a Firebase-free install set
-# DEPLOYMENT_MODE="selfhost" with SESSION_SECRET and APP_URL instead — see
-# "Deployment modes" below.
+# cloud mode: fill in the Firebase web keys and FIREBASE_SERVICE_ACCOUNT
+# selfhost mode: set DEPLOYMENT_MODE=selfhost, SESSION_SECRET and APP_URL
+#                (see .env.selfhost.example)
 
-# 3. Install dependencies (generates the Prisma client automatically)
+# 3. Dependencies (postinstall generates the Prisma client)
 npm install
 
-# 4. Apply migrations and seed a login account (provisioned in Firebase too)
-npm run db:migrate   # first run: applies the init migration
+# 4. Schema + demo account
+npm run db:migrate
 npm run db:seed
 
-# 5. Run the app
+# 5. Run
 npm run dev
 ```
 
-Open [http://localhost:3000]. Sign in with the demo account:
+Open [http://localhost:3000](http://localhost:3000) and sign in:
 
 ```text
 email:    demo@example.com
 password: demo1234
 ```
 
-The seed creates that account in Firebase as well (already verified) and no
-projects, so a fresh database starts empty. Create your first project from the
-dashboard, or import one from a CSV.
+The seed creates the account in Firebase too (already verified) and no projects, so a fresh database starts empty. Create a project from the dashboard, or import one from a CSV.
 
-## Useful commands
+## Testing
 
-| Command                     | What it does                                                                                                                      |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`               | Start the dev server                                                                                                              |
-| `npm run typecheck`         | `tsc --noEmit`                                                                                                                    |
-| `npm run lint`              | ESLint flat config                                                                                                                |
-| `npm test`                  | Vitest. Pure unit tests always run; the DB-backed authorization tests run when `DATABASE_URL` is set (local docker compose or CI) |
-| `npm run build`             | Production build                                                                                                                  |
-| `npm run db:up` / `db:down` | Start / stop the Postgres container                                                                                               |
-| `npm run db:migrate`        | Create and apply a migration (`prisma migrate dev`)                                                                               |
-| `npm run db:deploy`         | Apply existing migrations without creating                                                                                        |
-| `npm run db:seed`           | Seed a login account (no projects)                                                                                                |
-| `npm run db:reset`          | Drop, migrate, and seed from scratch                                                                                              |
-
-## Project layout
-
-```text
-src/
-  app/                  # App Router pages
-    page.tsx            # public landing page
-    docs/               # public documentation
-    (app)/              # protected pages (auth guard + header live here)
-      dashboard/        # focus view for your active project: what is happening now
-      no-access/        # 403 view for a project you don't belong to
-      projects/         # all your projects: grid + create/import + archived (completed)
-      projects/[projectId]/            # milestone timeline + supervisors + share link
-      projects/[projectId]/milestones/[milestoneId]  # kanban board + evidence + review + comments
-      projects/[projectId]/meetings/   # supervision meeting log + action -> task
-      projects/[projectId]/questions/  # open questions + adopt -> task
-      supervisor/       # projects you supervise (read-only)
-      supervisor/[projectId]/          # read-only review view + comments
-    (auth)/login        # sign-in page (forgot-password link lives here)
-    (auth)/signup       # create-account page (student / supervisor choice)
-    (auth)/setup        # first-run account, self-host mode only
-    (auth)/reset        # request a password reset email
-    (auth)/reset/[token]   # choose a new password (self-host)
-    (auth)/verify/[token]  # confirm an email address (self-host)
-    (auth)/invite/[token]  # accept a supervisor invitation (public)
-    share/[token]       # public, read-only project view (share link)
-    error.tsx           # 500 boundary with a request id
-    global-error.tsx    # root-level 500 boundary
-    not-found.tsx       # 404 page with a way back
-    api/auth/session    # swaps a Firebase ID token for the session cookie
-  actions/
-    auth.ts             # registerAccount, signInWithPassword, resetPassword,
-                        #   requestPasswordReset, verifyEmail, createFirstAdmin
-    projects.ts         # createProject, importProject, milestone CRUD + move/details, project edit/complete/reopen/delete
-    deliverables.ts     # add/toggle/update/delete milestone deliverables
-    dashboard.ts        # markCommentsRead (supervisor-comment watermark)
-    tasks.ts            # saveTask, deleteTask, moveTasks
-    invites.ts          # createInvite, acceptInvite, removeSupervisor, revokeInvite
-    comments.ts         # createComment, updateComment, deleteComment
-    meetings.ts         # createMeeting, updateMeeting, deleteMeeting, addAction, convertActionToTask
-    questions.ts        # createQuestion, updateQuestion, deleteQuestion, setStatus, adoptAsTask
-    reviews.ts          # saveReview (upsert), deleteReview
-    share.ts            # saveShareLink (create / set expiry), revokeShareLink
-    evidence.ts         # createEvidence, updateEvidence, deleteEvidence (owner only)
-  components/
-    auth/               # sign-in / sign-up / reset-email client forms
-    projects/           # create/edit-project + CSV import forms + complete/reopen/delete controls
-    timeline/           # add-milestone form, status control, move/edit/delete controls
-    kanban/             # KanbanBoard (dnd-kit), TaskDialog
-    invites/            # invite-supervisor + accept-invite forms
-    comments/           # CommentSection (thread with edit/delete), reused on
-                        #   milestones, tasks, meetings, questions, reviews,
-                        #   evidence
-    meetings/           # meeting form + convert/add action controls
-    questions/          # question form + status/adopt controls
-    reviews/            # review card + record/edit panel
-    evidence/           # evidence card + add/edit/delete section
-    deliverables/       # milestone deliverables checklist
-    milestone/          # milestone scope + definition of done panel
-    share/              # share-link panel (create, copy, expire, revoke)
-    ProgressBar.tsx     # shared progress bar
-    StatusBadge.tsx     # shared status badge
-  lib/
-    access.ts           # membership filters + per-project role lookup
-    auth.ts             # auth() session guard + clearSession
-    auth-provider.ts    # AuthProvider seam; picks the adapter from DEPLOYMENT_MODE
-    auth-firebase.ts    # cloud adapter: Firebase session cookie + account rows
-    auth-selfhost.ts    # self-host adapter: password rows live in Postgres
-    config.ts           # environment feature flags (ALLOW_SIGNUP)
-    deployment.ts       # DEPLOYMENT_MODE parsing + startup config check
-    password.ts         # scrypt password hashing
-    session.ts          # session cookie name + attributes
-    tokens.ts           # signed session, email-verification and reset tokens
-    rate-limit.ts       # in-memory failure limiter for sign-in
-    smtp.ts             # minimal SMTP client for verification / reset mail
-    prisma.ts           # Prisma client singleton
-    validation.ts       # Zod schemas
-    invites.ts          # pure invite token / hashing / expiry helpers
-    share.ts            # pure share token generator / active-window check
-    navigation.ts       # safe same-site callbackUrl helper
-    meetings.ts         # pure agreed-action textarea parser
-    dashboard.ts        # pure dashboard aggregation (progress / overdue / due-soon /
-                        #   meeting prep / open questions / unread comments)
-    supervisor.ts       # pure supervised-project summary (on-track / behind + next meeting)
-    csv-import.ts       # pure GanttProject CSV → project plan parser
-    firebase/client.ts  # browser SDK + auth error copy
-    firebase/admin.ts   # Admin SDK: session cookies + account lookups
-    data.ts             # membership-scoped read queries
-    comments.ts         # comment row → CommentItem mapping / per-target grouping
-    milestone-metrics.ts# pure progress / overdue / days-left helpers
-    status.ts           # shared status labels and colours
-prisma/
-  schema.prisma         # full data model
-  seed.ts               # demo data
-  migrations/           # versioned SQL migrations
-tests/                  # Vitest unit tests + DB-backed authorization tests
-.github/workflows/ci.yml
+```bash
+npm test          # Vitest
+npm run typecheck # tsc --noEmit
+npm run lint      # ESLint flat config
 ```
 
-## Deployment modes
+**207 tests across 22 files.** Pure unit tests always run; the DB-backed authorization tests (`tests/db-access.test.ts`, 14 cases) run when `DATABASE_URL` is set. CI starts a `postgres:16` service, applies migrations from clean, then runs typecheck → lint → test → build on every push and pull request.
 
-Cairn has two ways to store accounts, chosen by a single environment variable,
-`DEPLOYMENT_MODE`:
+## Deployment
 
 | Mode | Accounts live in | Firebase |
 | --- | --- | --- |
 | `cloud` (default) | Firebase Auth | required |
 | `selfhost` | this PostgreSQL database | never loaded or called |
 
-In `selfhost` mode there is no Firebase dependency at all: accounts are email +
-password rows in Postgres (hashed with scrypt), sessions are signed httpOnly
-cookies, and verification and reset links are signed tokens. The first visitor
-to a fresh install creates the first account at `/setup`.
+In `selfhost` mode accounts are Postgres rows (scrypt hashes), sessions are signed httpOnly cookies, and verification/reset are signed tokens. The first visitor to a fresh install creates the first account at `/setup`.
 
-To run the published image with docker compose, see
-[`SELF_HOSTING.md`](./SELF_HOSTING.md); `.env.selfhost.example` documents every
-variable. To run self-host mode from this checkout instead:
+The release workflow publishes a multi-arch (`amd64`/`arm64`) image to GHCR on every `v*` tag:
 
 ```bash
-DEPLOYMENT_MODE=selfhost
-DATABASE_URL="postgresql://cairn:cairn@localhost:5433/cairn"
-SESSION_SECRET="at-least-32-characters-generated-with-openssl"
-APP_URL="http://localhost:3000"
+docker pull ghcr.io/darshan-regmi/cairn:latest
 ```
 
-`SESSION_SECRET` is required and must be at least 32 characters; the app refuses
-to start without it. Set `SMTP_*` (see `.env.selfhost.example`) to send
-verification and reset mail; without it those links are printed to the logs
-instead.
+Full instructions: [`SELF_HOSTING.md`](./SELF_HOSTING.md) · every variable is documented in [`.env.selfhost.example`](./.env.selfhost.example).
 
-## Conventions
+---
 
-- **All mutations are server actions.** One pattern, used everywhere.
-  The Firebase session route handler is the only exception (it must be a route).
-- **Every server action re-validates with Zod.**
-- **Every query is scoped through `ProjectMember`.** Reads use `memberWhere`
-  (owner or supervisor); every write action uses `ownerWhere` (owner only).
-  Read helpers return `null` for foreign ids, pages render 404. Supervisors
-  get read-only pages under `/supervisor` and may only add comments.
-- **Supervisor invites are capability links.** The raw token is shown to the
-  student once and stored only as a SHA-256 hash. There is no SMTP dependency:
-  the student copies the link and sends it themselves.
-- Business logic lives in plain functions under `src/lib` so it is testable
-  without the database.
-- Dates are date-only values stored as local midnight; progress, overdue, and
-  days-left are computed by one shared utility with edge-case tests.
+## Project structure
 
-## Importing a plan from CSV
+```text
+src/
+  app/
+    (app)/          # authenticated: dashboard, projects, milestones, meetings,
+                    #   questions, supervisor views
+    (auth)/         # login, signup, setup, reset, verify, invite accept
+    share/[token]/  # public read-only project view
+    api/auth/session# Firebase ID token -> session cookie
+  actions/          # every mutation, one server action per operation
+  components/       # feature-grouped client components (kanban, timeline, ...)
+  lib/              # access control, auth adapters, pure domain logic
+prisma/
+  schema.prisma     # 13 models / 11 enums
+  migrations/       # versioned SQL
+tests/              # Vitest unit + DB-backed authorization tests
+scripts/            # VPS setup and update helpers
+```
 
-The projects page can import a **GanttProject-style CSV** (File → Export → CSV).
-One project per file; rows are matched by their outline id under the `i`
-column:
+## Roadmap
 
-- depth-1 rows → the project (its `Notes` become the project goal),
-- depth-2 rows → milestones (groups, order kept, `Notes` → goal),
-- depth-3 rows → tasks (`End Date` → due, TODO/MEDIUM, `Notes` kept and a
-  `Depends on: …` line added from `Predecessors`; tasks are ordered after
-  their dependencies).
+- [ ] Report helper (export a project write-up from its evidence and reviews)
+- [ ] All-tasks view across projects
+- [ ] Notifications (due-soon, new comments)
+- [ ] Settings page and per-project preferences
+- [ ] v2 self-hosting polish (backup/restore, upgrade notes)
 
-Only the columns **i, Name/Title, Start Date, End Date, Predecessors, Notes**
-are read, so the rest of the export (hours, resources, colours…) is ignored.
-Importing the same title + dates twice for the same user is refused.
+## License
 
-## Status
+MIT — see [LICENSE](./LICENSE).
 
-- **Phase 0 (done):** scaffold, Docker Compose Postgres, Prisma schema with
-  first migration, Auth.js sign-up/login, protected dashboard placeholder,
-  seed script, Vitest, ESLint, CI workflow, README.
-- **Phase 1 (done):** project creation, milestone timeline with progress and
-  one-click status changes, dnd-kit kanban (drag between To do / In progress /
-  Blocked / Done + reorder), task add/edit/delete, overdue flags, owner-scoped
-  DB tests, CI runs migrations before tests.
-- **CSV import (done):** pure GanttProject CSV parser with row-scoped errors
-  and tests, project goal column + timeline display, owner-scoped import
-  server action (single transaction, duplicate guard), and an inline import
-  form on the projects page.
-- **Data model (done):** access moved from `Project.ownerId` to `ProjectMember`
-  (OWNER / SUPERVISOR) plus `User.role`; added `Invite`, `Comment`, and
-  `MeetingTask`; existing owners and meeting action lines were migrated.
-- **Supervisor invites + comments (done):** the owner creates an invite link on
-  the project page, the invitee accepts it at `/invite/[token]`, supervisors
-  get a read-only `/supervisor` view and can comment on milestones (the owner
-  sees the thread on the board). Remove-supervisor and revoke-invite controls
-  are included.
-- **Meetings (done):** a project meeting log (date, next date, optional
-  milestone, items discussed, what went well, problems). Agreed actions are
-  `MeetingTask` lines that can be added or removed individually, and a
-  one-click **Convert to task** creates a `MEETING`-sourced kanban card on the
-  meeting's milestone (or a chosen one) and links the two.
-- **Open questions (done):** raise a question with context and the three
-  weighing-up notes (if we do it / what it costs / if we don't), track
-  OPEN / ADOPTED / PARKED / DROPPED, and **Adopt as task** creates a
-  `QUESTION`-sourced card on a chosen milestone with the decision recorded.
-- **Milestone reviews (done):** each milestone holds one review — a date, a
-  verdict (On track / Partly met / Off track) and the asked-for / demonstrated
-  / promised notes. Owners record, edit and delete it on the board; the verdict
-  shows on the project timeline, and supervisors read the review (their
-  feedback still lives in comments).
-- **Focus dashboard (done):** `/dashboard` is a focus view for one active
-  project — at-a-glance totals, the phase that is in progress with the tasks
-  being worked on right now, and what is due this week, with a switcher when
-  more than one project is in progress. `/projects` holds every project you
-  own, split into **in progress** and **archived**: complete a project to move
-  it to the archive (its share link pauses), reopen it any time, or edit and
-  delete projects and milestones. New supervisor comments surface on the
-  dashboard and clear in one click.
-- **Public share link (done):** the owner can mint a read-only link to a
-  project. Anyone holding it can view the milestones, their tasks and the
-  review verdicts with no account, and the owner can set an optional expiry or
-  revoke it in one click. That completes the v1 read story.
-- **Evidence on milestones (done):** collect the links that prove a milestone —
-  demo, screenshot, test result, benchmark, commit/PR or supervisor feedback,
-  each with a date, an optional URL and an optional note on what it proves.
-  Owners add, edit and delete on the board; supervisors see the list read-only.
-- **Comments on every target (done):** any project member can discuss a
-  milestone, task, meeting, open question, review or piece of evidence. Authors
-  edit or delete their own comments; owners see the threads on the board, the
-  meetings page and the questions page, and supervisors see them and reply from
-  `/supervisor/[projectId]`.
-- **Milestone scope, definition of done and deliverables (done):** a milestone
-  can carry a scope, a definition of done and a checklist of deliverables (each
-  with an optional link) that owners tick off on the board; supervisors and
-  share links see them read-only.
-- **Timeline reorder and reschedule (done):** milestones can be moved up or down
-  and given new dates straight from the project timeline, using a two-pass
-  transaction that keeps the per-project order unique.
-- **Every view reads the whole plan (done):** share links and supervisor views
-  include meetings, supervised projects are summarised on the supervisor home
-  with an on-track / behind badge and the next meeting date, and the question
-  board groups questions by status.
-- **System pages (done):** a 404 that leads back to the dashboard, a 500 page
-  that shows the request id, and a distinct no-access page when you open a
-  project you do not belong to.
-- **Self-service accounts (done):** sign-up asks whether you are a student or a
-  supervisor and can be closed with `ALLOW_SIGNUP=false`. Accounts live in
-  Firebase: a verification email must be opened before the first sign-in, and the
-  login page links to a password reset that Firebase sends for you.
-- **Landing and docs (done):** a public landing page at `/` and a `/docs` guide
-  covering the whole workflow and self-hosting configuration.
-- **Self-hosted deployment (done):** a `DEPLOYMENT_MODE` switch behind an
-  `AuthProvider` seam. In `selfhost` mode accounts are Postgres rows with scrypt
-  password hashes, sessions are signed httpOnly cookies, verification and reset
-  links are signed tokens, sign-in is rate limited, and the first run creates the
-  first account at `/setup`. The Firebase SDK is never imported or called. Ships
-  as a multi-stage Docker image that migrates the database on startup.
-- **Still to build:** report helper, all-tasks view, settings, notifications, and
-  the v2 self-hosting polish items.
+---
+
+Built by [Darshan Regmi](https://darshanregmi.com.np).
